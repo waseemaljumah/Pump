@@ -1,0 +1,56 @@
+<!-- pages/pumps.html — إدارة المضخات -->
+<div class="ph">
+  <div>
+    <div class="ph-title">🔧 إدارة المضخات</div>
+    <div class="ph-sub">أضف أرقام المضخات مع بلدياتها، ثم اختر منها عند تسجيل البلاغات</div>
+  </div>
+</div>
+
+<!-- إضافة مضخة -->
+<div class="card">
+  <div class="card-title"><div class="card-title-left">➕ إضافة مضخة جديدة</div></div>
+  <div class="fg">
+    <div class="f">
+      <label>البلدية <span class="req">*</span></label>
+      <select id="p_city">
+        <option value="">اختر البلدية</option>
+      <option>البيداء (العقيق)</option><option>أحد</option><option>العيون</option>
+      <option>العوالي</option><option>قباء</option><option>المليليح</option>
+      <option>المندسة</option><option>المركزية (الحرم)</option>
+      </select>
+    </div>
+    <div class="f">
+      <label>رقم المضخة <span class="req">*</span></label>
+      <input type="text" id="p_num" placeholder="مثال: P-101">
+    </div>
+    <div class="f">
+      <label>وصف إضافي (اختياري)</label>
+      <input type="text" id="p_desc" placeholder="موقع أو وصف المضخة">
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="APP.addPump()">💾 إضافة المضخة</button>
+  </div>
+</div>
+
+<!-- قائمة المضخات -->
+<div class="card">
+  <div class="card-title"><div class="card-title-left">📋 المضخات المسجلة</div></div>
+  <div class="fb" style="margin-bottom:14px">
+    <select id="pf_city" onchange="APP.renderPumps()">
+      <option value="">كل البلديات</option>
+      <option>البيداء (العقيق)</option><option>أحد</option><option>العيون</option>
+      <option>العوالي</option><option>قباء</option><option>المليليح</option>
+      <option>المندسة</option><option>المركزية (الحرم)</option>
+    </select>
+    <input type="text" id="pf_q" placeholder="🔍 بحث..." oninput="APP.renderPumps()" style="max-width:200px">
+  </div>
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>#</th><th>رقم المضخة</th><th>البلدية</th><th>الوصف</th><th>تاريخ الإضافة</th><th>إجراء</th></tr>
+      </thead>
+      <tbody id="pumpsBody"></tbody>
+    </table>
+  </div>
+</div>

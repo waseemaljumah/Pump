@@ -1,0 +1,57 @@
+<!-- pages/export.html — تصدير Excel -->
+<div class="ph">
+  <div>
+    <div class="ph-title">📥 تصدير Excel</div>
+    <div class="ph-sub">تصدير كل بيانات البلاغات دفعة واحدة مع الأعطال والأعمال وتواريخها</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><div class="card-title-left">⚙️ خيارات التصدير (اختياري)</div></div>
+  <div class="fg">
+    <div class="f">
+      <label>تصفية حسب البلدية</label>
+      <select id="ex_city" data-city-select="filter">
+        <option value="">كل البلديات</option>
+      </select>
+    </div>
+    <div class="f">
+      <label>من تاريخ</label>
+      <input type="date" id="ex_from">
+    </div>
+    <div class="f">
+      <label>إلى تاريخ</label>
+      <input type="date" id="ex_to">
+    </div>
+    <div class="f">
+      <label>الحالة</label>
+      <select id="ex_st">
+        <option value="">كل البلاغات</option>
+        <option value="done">مكتملة فقط</option>
+        <option value="incomplete">غير مكتملة فقط</option>
+      </select>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="APP.doExport()">📊 تصدير Excel</button>
+    <button class="btn btn-outline" onclick="APP.previewExport()">👁️ معاينة</button>
+  </div>
+</div>
+
+<div id="prevCard" class="card" style="display:none">
+  <div class="card-title">
+    <div class="card-title-left">👁️ معاينة — <span id="prevCount">0</span> سجل</div>
+  </div>
+  <div class="tw">
+    <table>
+      <thead>
+        <tr>
+          <th>رقم البلاغ</th><th>المضخة</th><th>البلدية</th><th>التاريخ</th>
+          <th>الأعطال</th><th>ت. أمر العمل</th><th>الأعمال</th>
+          <th>تسجيل</th><th>اعتماد</th><th>ملاحظات</th>
+        </tr>
+      </thead>
+      <tbody id="prevBody"></tbody>
+    </table>
+  </div>
+</div>

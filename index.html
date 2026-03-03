@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام متابعة أعطال المضخات</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- ══ TOPBAR ══ -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-icon">⚙️</div>
+    <div>
+      <h1>نظام متابعة أعطال المضخات</h1>
+      <p id="topDate">—</p>
+    </div>
+  </div>
+  <div class="top-chips">
+    <div class="chip chip-total"   onclick="APP.navTo('dashboard')"><span id="tTotal">0</span> إجمالي</div>
+    <div class="chip chip-pending" onclick="APP.goFilter('')"><span id="tPending">0</span> قيد الإنجاز</div>
+    <div class="chip chip-done"    onclick="APP.goFilter('done')"><span id="tDone">0</span> مكتملة</div>
+  </div>
+</div>
+
+<!-- ══ LAYOUT ══ -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="nav-group">القائمة</div>
+    <div class="nav-item active" id="nav-dashboard" onclick="APP.navTo('dashboard')">📊 لوحة التحكم</div>
+    <div class="nav-item"        id="nav-new"       onclick="APP.navTo('new')">➕ بلاغ جديد</div>
+    <div class="nav-item"        id="nav-list"      onclick="APP.navTo('list')">📋 قائمة البلاغات</div>
+    <div class="nav-sep"></div>
+    <div class="nav-group">الإعدادات</div>
+    <div class="nav-item"        id="nav-pumps"     onclick="APP.navTo('pumps')">🔧 إدارة المضخات</div>
+    <div class="nav-sep"></div>
+    <div class="nav-group">التقارير</div>
+    <div class="nav-item"        id="nav-export"    onclick="APP.navTo('export')">📥 تصدير Excel</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="mainContent">
+    <div class="loader"><div class="spin"></div> جار تحميل البيانات...</div>
+  </div>
+
+</div><!-- /layout -->
+
+<!-- ══ EDIT MODAL ══ -->
+<div class="overlay" id="editOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span>✏️ تعديل البلاغ — <span id="editLabel" style="color:var(--primary)"></span></span>
+      <span class="modal-close" onclick="APP.closeEdit()">✕</span>
+    </div>
+
+    <div class="prog" id="editProg"></div>
+
+    <div class="fg">
+      <div class="f"><label>رقم البلاغ</label><input type="text" id="e_num"></div>
+      <div class="f">
+        <label>البلدية</label>
+        <select id="e_city" data-city-select onchange="APP.loadPumpsForCity('e_city','e_pump')">
+          <option value="">اختر البلدية</option>
+        </select>
+      </div>
+      <div class="f"><label>رقم المضخة</label><select id="e_pump"><option value="">—</option></select></div>
+      <div class="f"><label>تاريخ البلاغ</label><input type="date" id="e_date"></div>
+    </div>
+
+    <div class="sep"></div>
+    <div style="font-size:13px;font-weight:600;color:var(--text-mid);margin-bottom:8px">🔴 الأعطال</div>
+    <div id="e_faultsList" class="fault-list"></div>
+    <div class="add-fault-row" style="margin-top:10px">
+      <textarea id="e_faultInput" placeholder="أضف عطل جديد..."></textarea>
+      <button class="btn btn-danger btn-sm" onclick="APP.addFaultToEdit()">➕</button>
+    </div>
+
+    <div class="sep"></div>
+    <div class="fg">
+      <div class="f"><label>تاريخ أمر العمل</label><input type="date" id="e_orderDate"></div>
+    </div>
+
+    <div style="font-size:13px;font-weight:600;color:var(--text-mid);margin:12px 0 8px">🔧 الأعمال التي تمت</div>
+    <div id="e_worksList" class="fault-list"></div>
+    <div class="add-fault-row" style="margin-top:10px">
+      <textarea id="e_workInput" placeholder="أضف عمل تم..."></textarea>
+      <button class="btn btn-success btn-sm" onclick="APP.addWorkToEdit()">➕</button>
+    </div>
+
+    <div class="sep"></div>
+    <div class="fg">
+      <div class="f full"><label>ملاحظات</label><textarea id="e_notes"></textarea></div>
+    </div>
+
+    <div class="check-row">
+      <div class="ci" id="e_ci_reg" onclick="APP.toggleCI('e_ci_reg','e_cb_reg')"><div class="cb" id="e_cb_reg"></div>تم تسجيل الأعمال بالنظام</div>
+      <div class="ci" id="e_ci_app" onclick="APP.toggleCI('e_ci_app','e_cb_app')"><div class="cb" id="e_cb_app"></div>تم اعتماد الأعمال من المشرف</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="APP.saveEdit()">💾 حفظ التعديلات</button>
+      <button class="btn btn-gray"    onclick="APP.closeEdit()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══ APP BOOTSTRAP ══ -->
+<script type="module" src="js/app.js"></script>
+
+</body>
+</html>

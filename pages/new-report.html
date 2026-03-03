@@ -1,0 +1,79 @@
+<!-- pages/new-report.html — بلاغ جديد -->
+<div class="ph">
+  <div>
+    <div class="ph-title">➕ تسجيل بلاغ جديد</div>
+    <div class="ph-sub">أدخل بيانات البلاغ والمضخة</div>
+  </div>
+</div>
+
+<!-- بيانات المضخة -->
+<div class="card">
+  <div class="card-title"><div class="card-title-left">📌 بيانات المضخة</div></div>
+  <div class="fg">
+    <div class="f">
+      <label>البلدية <span class="req">*</span></label>
+      <select id="f_city" data-city-select onchange="APP.loadPumpsForCity('f_city','f_pump')">
+        <option value="">اختر البلدية</option>
+      </select>
+    </div>
+    <div class="f">
+      <label>رقم المضخة <span class="req">*</span></label>
+      <select id="f_pump"><option value="">اختر البلدية أولاً</option></select>
+    </div>
+    <div class="f">
+      <label>تاريخ البلاغ <span class="req">*</span></label>
+      <input type="date" id="f_date">
+    </div>
+    <div class="f">
+      <label>رقم البلاغ (اختياري)</label>
+      <input type="text" id="f_num" placeholder="مثال: 8631">
+    </div>
+  </div>
+</div>
+
+<!-- الأعطال -->
+<div class="card">
+  <div class="card-title"><div class="card-title-left">🔴 الأعطال المُبلَّغ عنها</div></div>
+  <div id="faultsList" class="fault-list"></div>
+  <div class="add-fault-row" style="margin-top:12px">
+    <textarea id="f_faultInput" placeholder="اكتب وصف العطل هنا ثم اضغط إضافة..."></textarea>
+    <button class="btn btn-danger" onclick="APP.addFaultToForm()">➕ إضافة</button>
+  </div>
+</div>
+
+<!-- أمر العمل والأعمال -->
+<div class="card">
+  <div class="card-title"><div class="card-title-left">📋 أمر العمل والأعمال</div></div>
+  <div class="fg">
+    <div class="f">
+      <label>تاريخ فتح أمر العمل</label>
+      <input type="date" id="f_orderDate">
+    </div>
+  </div>
+
+  <div class="sep"></div>
+  <div style="font-size:13px;font-weight:600;color:var(--text-mid);margin-bottom:8px">🔧 الأعمال التي تمت</div>
+  <div id="worksList" class="fault-list"></div>
+  <div class="add-fault-row" style="margin-top:12px">
+    <textarea id="f_workInput" placeholder="اكتب عمل تم تنفيذه ثم اضغط إضافة..."></textarea>
+    <button class="btn btn-success" onclick="APP.addWorkToForm()">➕ إضافة</button>
+  </div>
+
+  <div class="sep"></div>
+  <div class="fg">
+    <div class="f full">
+      <label>ملاحظات (أعمال لم تُنجز / أعمال جديدة)</label>
+      <textarea id="f_notes" placeholder="أي ملاحظات إضافية..."></textarea>
+    </div>
+  </div>
+
+  <div class="check-row">
+    <div class="ci" id="ci_reg" onclick="APP.toggleCI('ci_reg','cb_reg')"><div class="cb" id="cb_reg"></div>تم تسجيل الأعمال بالنظام</div>
+    <div class="ci" id="ci_app" onclick="APP.toggleCI('ci_app','cb_app')"><div class="cb" id="cb_app"></div>تم اعتماد الأعمال من المشرف</div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="APP.saveReport()">💾 حفظ البلاغ</button>
+    <button class="btn btn-gray"    onclick="APP.clearNewForm()">🗑️ مسح</button>
+  </div>
+</div>

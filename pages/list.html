@@ -1,0 +1,43 @@
+<!-- pages/list.html — قائمة البلاغات -->
+<div class="ph">
+  <div>
+    <div class="ph-title">📋 قائمة البلاغات</div>
+    <div class="ph-sub" id="listCount">—</div>
+  </div>
+  <button class="btn btn-primary" onclick="APP.navTo('new')">➕ جديد</button>
+</div>
+
+<div class="fb">
+  <input  type="text" id="fl_q"    placeholder="🔍 بحث برقم البلاغ أو المضخة..." oninput="APP.renderList()" style="max-width:240px">
+  <select id="fl_city" data-city-select="filter" onchange="APP.renderList()">
+    <option value="">كل البلديات</option>
+  </select>
+  <select id="fl_st" onchange="APP.renderList()">
+    <option value="">كل الحالات</option>
+    <option value="done">✅ مكتملة</option>
+    <option value="no-order">⚠️ بدون أمر عمل</option>
+    <option value="has-order">📋 لديها أمر عمل</option>
+    <option value="noreg">⏳ لم تُسجَّل أعمالها</option>
+    <option value="reg">✅ سُجِّلت أعمالها</option>
+    <option value="wait">🔔 بانتظار الاعتماد</option>
+  </select>
+  <select id="fl_sort" onchange="APP.renderList()">
+    <option value="desc">الأحدث أولاً</option>
+    <option value="asc">الأقدم أولاً</option>
+  </select>
+</div>
+
+<div class="card">
+  <div class="tw">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>رقم البلاغ</th><th>المضخة</th><th>البلدية</th>
+          <th>تاريخ البلاغ</th><th>أمر العمل</th><th>الأعمال</th>
+          <th>الاعتماد</th><th>الحالة</th><th>إجراء</th>
+        </tr>
+      </thead>
+      <tbody id="listBody"></tbody>
+    </table>
+  </div>
+</div>

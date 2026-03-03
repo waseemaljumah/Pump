@@ -1,0 +1,26 @@
+<!-- pages/dashboard.html — لوحة التحكم -->
+<div class="ph">
+  <div>
+    <div class="ph-title">📊 لوحة التحكم</div>
+    <div class="ph-sub" id="dashSub">—</div>
+  </div>
+  <button class="btn btn-primary" onclick="APP.navTo('new')">➕ بلاغ جديد</button>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card c-all"     onclick="APP.goFilter('')">        <div class="sc-num" id="s0">0</div><div class="sc-lbl">إجمالي البلاغات</div></div>
+  <div class="stat-card c-order"   onclick="APP.goFilter('has-order')"><div class="sc-num" id="s1">0</div><div class="sc-lbl">📋 لديها أمر عمل</div></div>
+  <div class="stat-card c-noorder" onclick="APP.goFilter('no-order')"> <div class="sc-num" id="s2">0</div><div class="sc-lbl">⚠️ بدون أمر عمل</div></div>
+  <div class="stat-card c-reg"     onclick="APP.goFilter('reg')">      <div class="sc-num" id="s3">0</div><div class="sc-lbl">✅ سُجِّلت أعمالها</div></div>
+  <div class="stat-card c-noreg"   onclick="APP.goFilter('noreg')">    <div class="sc-num" id="s4">0</div><div class="sc-lbl">⏳ لم تُسجَّل أعمالها</div></div>
+  <div class="stat-card c-wait"    onclick="APP.goFilter('wait')">     <div class="sc-num" id="s5">0</div><div class="sc-lbl">🔔 بانتظار الاعتماد</div></div>
+  <div class="stat-card c-done"    onclick="APP.goFilter('done')">     <div class="sc-num" id="s6">0</div><div class="sc-lbl">✅ مكتملة بالكامل</div></div>
+</div>
+
+<div class="card">
+  <div class="card-title">
+    <div class="card-title-left">⚠️ بلاغات تحتاج متابعة</div>
+    <button class="btn btn-gray btn-sm" onclick="APP.navTo('list')">عرض الكل</button>
+  </div>
+  <div id="dashTable"><div class="loader"><div class="spin"></div> جار التحميل...</div></div>
+</div>
