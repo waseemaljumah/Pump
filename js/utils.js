@@ -27,10 +27,12 @@ export function todayISO() {
 
 // ─── حالة البلاغ ───
 export function getStatus(r) {
-  if (!r.orderDate)   return { label: 'بدون أمر عمل',      cls: 'b-red',    code: 'no-order' };
-  if (!r.registered)  return { label: 'لم تُسجَّل الأعمال', cls: 'b-orange', code: 'noreg'    };
-  if (!r.approved)    return { label: 'بانتظار الاعتماد',  cls: 'b-yellow', code: 'wait'     };
-  return               { label: 'مكتمل ✓',               cls: 'b-green',  code: 'done'     };
+  if (!r.orderDate)   return { label: 'بدون أمر عمل',       cls: 'b-red',     code: 'no-order' };
+  if (r.worked && !r.registered)
+                      return { label: 'تم العمل عليها 🔧',  cls: 'b-purple',  code: 'worked'   };
+  if (!r.registered)  return { label: 'لم تُسجَّل الأعمال',  cls: 'b-orange',  code: 'noreg'    };
+  if (!r.approved)    return { label: 'بانتظار الاعتماد',   cls: 'b-yellow',  code: 'wait'     };
+  return               { label: 'مكتمل ✓',                cls: 'b-green',   code: 'done'     };
 }
 
 // ─── فلترة حسب الكود ───
@@ -41,6 +43,7 @@ export function matchFilter(r, f) {
   if (f === 'no-order')  return st === 'no-order';
   if (f === 'has-order') return !!r.orderDate;
   if (f === 'noreg')     return st === 'noreg';
+  if (f === 'worked')    return st === 'worked';
   if (f === 'reg')       return !!r.registered;
   if (f === 'wait')      return st === 'wait';
   return true;
@@ -68,24 +71,29 @@ export function getCI(ciId) {
 }
 
 // ─── Render fault / work list ───
-export function renderItems(containerId, arr, delFn, editFn) {
+export function renderItems(containerId, arr, delFn, editFn, checkFn) {
   const el = document.getElementById(containerId);
   if (!el) return;
   if (!arr.length) {
     el.innerHTML = '<div class="empty-items">لا يوجد عناصر مضافة بعد</div>';
     return;
   }
-  el.innerHTML = arr.map((item, i) => `
-    <div class="fault-item" id="fi_${containerId}_${i}">
+  el.innerHTML = arr.map((item, i) => {
+    const checked = !!item.done;
+    const checkCall = checkFn ? `onclick="${checkFn}(${i})"` : '';
+    return `
+    <div class="fault-item ${checked ? 'fault-item-done' : ''}" id="fi_${containerId}_${i}">
+      ${checkFn ? `<div class="item-check ${checked ? 'item-check-on' : ''}" ${checkCall} title="تحديد كمنجز">${checked ? '✓' : ''}</div>` : ''}
       <div class="fault-item-body">
-        <div class="fault-item-text" id="fit_${containerId}_${i}">${escHtml(item.text)}</div>
+        <div class="fault-item-text ${checked ? 'text-striked' : ''}" id="fit_${containerId}_${i}">${escHtml(item.text)}</div>
         <div class="fault-item-date">📅 ${item.date}</div>
       </div>
       <div class="fault-item-actions">
         <button class="btn-edit-item" onclick="window._startInlineEdit('${containerId}',${i},'${editFn}')">✏️ تعديل</button>
         <button class="btn-del-item"  onclick="${delFn}(${i})">🗑️ حذف</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ─── inline edit helpers ───

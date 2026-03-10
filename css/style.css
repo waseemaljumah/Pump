@@ -244,3 +244,24 @@ tbody td { padding:10px 12px; vertical-align:middle; }
 ::-webkit-scrollbar       { width:5px; height:5px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+/* ── Item Checkbox ── */
+.item-check {
+  width:26px; height:26px; flex-shrink:0;
+  border:2px solid var(--border2); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; font-size:13px; font-weight:700;
+  color:transparent; transition:all .15s; margin-top:2px;
+  background:#fff;
+}
+.item-check:hover { border-color:var(--green); background:var(--green-light); }
+.item-check-on { background:var(--green); border-color:var(--green); color:#fff; }
+
+.fault-item-done { opacity:.65; background:#f1f5f0; }
+.text-striked { text-decoration:line-through; color:var(--text-dim); }
+
+/* ── Purple badge for "worked" status ── */
+:root { --purple:#6d28d9; --purple-light:#ede9fe; }
+.b-purple { background:var(--purple-light); color:var(--purple); }
+.c-worked::before { background:var(--purple); }
+.c-worked .sc-num { color:var(--purple); }

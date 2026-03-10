@@ -30,46 +30,56 @@ export function initNewForm() {
   formFaults = [];
   formWorks  = [];
   document.getElementById('f_date').value = todayISO();
-  renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault');
-  renderItems('worksList',  formWorks,  'window.APP.delFormWork',  'window.APP.editFormWork');
+  renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault', 'window.APP.checkFormFault');
+  renderItems('worksList',  formWorks,  'window.APP.delFormWork',  'window.APP.editFormWork',  'window.APP.checkFormWork');
 }
 
 export function addFaultToForm() {
   const v = document.getElementById('f_faultInput')?.value.trim();
   if (!v) return;
-  formFaults.push({ text: v, date: nowStamp() });
+  formFaults.push({ text: v, date: nowStamp(), done: false });
   document.getElementById('f_faultInput').value = '';
-  renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault');
+  renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault', 'window.APP.checkFormFault');
 }
 
 export function delFormFault(i) {
   formFaults.splice(i, 1);
-  renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault');
+  renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault', 'window.APP.checkFormFault');
 }
 
 export function editFormFault(i, newText) {
   if (!newText?.trim()) return;
   formFaults[i].text = newText.trim();
-  renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault');
+  renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault', 'window.APP.checkFormFault');
+}
+
+export function checkFormFault(i) {
+  formFaults[i].done = !formFaults[i].done;
+  renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault', 'window.APP.checkFormFault');
 }
 
 export function addWorkToForm() {
   const v = document.getElementById('f_workInput')?.value.trim();
   if (!v) return;
-  formWorks.push({ text: v, date: nowStamp() });
+  formWorks.push({ text: v, date: nowStamp(), done: false });
   document.getElementById('f_workInput').value = '';
-  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork');
+  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork', 'window.APP.checkFormWork');
 }
 
 export function delFormWork(i) {
   formWorks.splice(i, 1);
-  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork');
+  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork', 'window.APP.checkFormWork');
 }
 
 export function editFormWork(i, newText) {
   if (!newText?.trim()) return;
   formWorks[i].text = newText.trim();
-  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork');
+  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork', 'window.APP.checkFormWork');
+}
+
+export function checkFormWork(i) {
+  formWorks[i].done = !formWorks[i].done;
+  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork', 'window.APP.checkFormWork');
 }
 
 export async function saveReport() {
@@ -91,6 +101,7 @@ export async function saveReport() {
     notes:     document.getElementById('f_notes')?.value.trim() || '',
     registered: getCI('ci_reg'),
     approved:   getCI('ci_app'),
+    worked:     getCI('ci_worked'),
     createdAt:  Date.now()
   });
 
@@ -111,8 +122,9 @@ export function clearNewForm() {
   document.getElementById('f_date').value = todayISO();
   setCI('ci_reg','cb_reg', false);
   setCI('ci_app','cb_app', false);
-  renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault');
-  renderItems('worksList',  formWorks,  'window.APP.delFormWork',  'window.APP.editFormWork');
+  setCI('ci_worked','cb_worked', false);
+  renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault', 'window.APP.checkFormFault');
+  renderItems('worksList',  formWorks,  'window.APP.delFormWork',  'window.APP.editFormWork',  'window.APP.checkFormWork');
 }
 
 // ══════════════════════════════════════
@@ -143,13 +155,14 @@ export async function openEdit(id) {
 
   setCI('e_ci_reg','e_cb_reg', r.registered);
   setCI('e_ci_app','e_cb_app', r.approved);
+  setCI('e_ci_worked','e_cb_worked', r.worked);
 
-  renderItems('e_faultsList', editFaults, 'window.APP.delEditFault', 'window.APP.editEditFault');
-  renderItems('e_worksList',  editWorks,  'window.APP.delEditWork',  'window.APP.editEditWork');
+  renderItems('e_faultsList', editFaults, 'window.APP.delEditFault', 'window.APP.editEditFault', 'window.APP.checkEditFault');
+  renderItems('e_worksList',  editWorks,  'window.APP.delEditWork',  'window.APP.editEditWork',  'window.APP.checkEditWork');
 
   // شريط التقدم
-  const steps   = ['البلاغ','أمر العمل','التسجيل','الاعتماد'];
-  const stepIdx = { 'no-order':0, noreg:1, wait:2, done:3 }[getStatus(r).code] ?? 3;
+  const steps   = ['البلاغ','أمر العمل','تم العمل','التسجيل','الاعتماد'];
+  const stepIdx = { 'no-order':0, worked:1, noreg:2, wait:3, done:4 }[getStatus(r).code] ?? 4;
   const progEl  = document.getElementById('editProg');
   if (progEl) {
     progEl.innerHTML = steps.map((s,i) =>
@@ -169,35 +182,43 @@ export function closeEdit() {
 export function addFaultToEdit() {
   const v = document.getElementById('e_faultInput')?.value.trim();
   if (!v) return;
-  editFaults.push({ text: v, date: nowStamp() });
+  editFaults.push({ text: v, date: nowStamp(), done: false });
   document.getElementById('e_faultInput').value = '';
-  renderItems('e_faultsList', editFaults, 'window.APP.delEditFault', 'window.APP.editEditFault');
+  renderItems('e_faultsList', editFaults, 'window.APP.delEditFault', 'window.APP.editEditFault', 'window.APP.checkEditFault');
 }
 export function delEditFault(i) {
   editFaults.splice(i, 1);
-  renderItems('e_faultsList', editFaults, 'window.APP.delEditFault', 'window.APP.editEditFault');
+  renderItems('e_faultsList', editFaults, 'window.APP.delEditFault', 'window.APP.editEditFault', 'window.APP.checkEditFault');
 }
 export function editEditFault(i, newText) {
   if (!newText?.trim()) return;
   editFaults[i].text = newText.trim();
-  renderItems('e_faultsList', editFaults, 'window.APP.delEditFault', 'window.APP.editEditFault');
+  renderItems('e_faultsList', editFaults, 'window.APP.delEditFault', 'window.APP.editEditFault', 'window.APP.checkEditFault');
+}
+export function checkEditFault(i) {
+  editFaults[i].done = !editFaults[i].done;
+  renderItems('e_faultsList', editFaults, 'window.APP.delEditFault', 'window.APP.editEditFault', 'window.APP.checkEditFault');
 }
 
 export function addWorkToEdit() {
   const v = document.getElementById('e_workInput')?.value.trim();
   if (!v) return;
-  editWorks.push({ text: v, date: nowStamp() });
+  editWorks.push({ text: v, date: nowStamp(), done: false });
   document.getElementById('e_workInput').value = '';
-  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork');
+  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork', 'window.APP.checkEditWork');
 }
 export function delEditWork(i) {
   editWorks.splice(i, 1);
-  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork');
+  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork', 'window.APP.checkEditWork');
 }
 export function editEditWork(i, newText) {
   if (!newText?.trim()) return;
   editWorks[i].text = newText.trim();
-  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork');
+  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork', 'window.APP.checkEditWork');
+}
+export function checkEditWork(i) {
+  editWorks[i].done = !editWorks[i].done;
+  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork', 'window.APP.checkEditWork');
 }
 
 export async function saveEdit() {
@@ -217,6 +238,7 @@ export async function saveEdit() {
     notes:      document.getElementById('e_notes').value.trim(),
     registered: getCI('e_ci_reg'),
     approved:   getCI('e_ci_app'),
+    worked:     getCI('e_ci_worked'),
     updatedAt:  Date.now()
   });
 

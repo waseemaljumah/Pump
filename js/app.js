@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════
 
 import { initPumps, renderPumps, addPump, deletePump, loadPumpsForCity, populateCitySelects } from './pumps.js';
-import { initReports, saveReport, clearNewForm, openEdit, closeEdit, saveEdit, deleteReport, addFaultToForm, delFormFault, editFormFault, addWorkToForm, delFormWork, editFormWork, addFaultToEdit, delEditFault, editEditFault, addWorkToEdit, delEditWork, editEditWork, initNewForm } from './reports.js';
+import { initReports, saveReport, clearNewForm, openEdit, closeEdit, saveEdit, deleteReport, addFaultToForm, delFormFault, editFormFault, checkFormFault, addWorkToForm, delFormWork, editFormWork, checkFormWork, addFaultToEdit, delEditFault, editEditFault, checkEditFault, addWorkToEdit, delEditWork, editEditWork, checkEditWork, initNewForm } from './reports.js';
 import { updateStats, renderDashboard, renderList } from './ui.js';
 import { doExport, previewExport } from './export.js';
 import { toast, toggleCI, todayISO } from './utils.js';
@@ -80,10 +80,10 @@ window.APP = {
   // reports
   saveReport, clearNewForm,
   openEdit, closeEdit, saveEdit, deleteReport,
-  addFaultToForm, delFormFault, editFormFault,
-  addWorkToForm,  delFormWork,  editFormWork,
-  addFaultToEdit, delEditFault, editEditFault,
-  addWorkToEdit,  delEditWork,  editEditWork,
+  addFaultToForm, delFormFault, editFormFault, checkFormFault,
+  addWorkToForm,  delFormWork,  editFormWork,  checkFormWork,
+  addFaultToEdit, delEditFault, editEditFault, checkEditFault,
+  addWorkToEdit,  delEditWork,  editEditWork,  checkEditWork,
   // ui
   updateStats, renderDashboard, renderList,
   // export

@@ -19,10 +19,11 @@ export function updateStats() {
   set('s0',       total);
   set('s1',       R.filter(r => !!r.orderDate).length);
   set('s2',       R.filter(r => !r.orderDate).length);
-  set('s3',       R.filter(r => r.registered).length);
-  set('s4',       R.filter(r => r.orderDate && !r.registered).length);
-  set('s5',       R.filter(r => r.registered && !r.approved).length);
-  set('s6',       done);
+  set('s3',       R.filter(r => r.worked && !r.registered).length);
+  set('s4',       R.filter(r => r.registered).length);
+  set('s5',       R.filter(r => r.orderDate && !r.registered).length);
+  set('s6',       R.filter(r => r.registered && !r.approved).length);
+  set('s7',       done);
 
   const sub = document.getElementById('dashSub');
   if (sub) sub.textContent = `آخر تحديث: ${new Date().toLocaleTimeString('ar-SA')}`;
@@ -47,7 +48,7 @@ export function renderDashboard() {
       <table>
         <thead><tr>
           <th>رقم البلاغ</th><th>المضخة</th><th>البلدية</th><th>التاريخ</th>
-          <th>أمر العمل</th><th>التسجيل</th><th>الاعتماد</th><th>الحالة</th><th>إجراء</th>
+          <th>أمر العمل</th><th>تم العمل</th><th>التسجيل</th><th>الاعتماد</th><th>الحالة</th><th>إجراء</th>
         </tr></thead>
         <tbody>
           ${urgent.map(r => reportRow(r)).join('')}
@@ -87,7 +88,7 @@ export function renderList() {
   if (!tbody) return;
 
   if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="10">
+    tbody.innerHTML = `<tr><td colspan="11">
       <div class="empty"><div class="empty-icon">📭</div><p>لا توجد نتائج</p></div>
     </td></tr>`;
     return;
@@ -102,8 +103,9 @@ export function renderList() {
       <td>${r.city}</td>
       <td>${r.date}</td>
       <td><span class="badge ${r.orderDate ? 'b-blue' : 'b-red'}">${r.orderDate || '—'}</span></td>
-      <td><span class="badge ${r.registered ? 'b-green' : 'b-red'}">${r.registered ? '✓' : '✗'}</span></td>
-      <td><span class="badge ${r.approved   ? 'b-green' : 'b-red'}">${r.approved   ? '✓' : '✗'}</span></td>
+      <td><span class="badge ${r.worked    ? 'b-purple': 'b-red'}">${r.worked    ? '✓' : '✗'}</span></td>
+      <td><span class="badge ${r.registered? 'b-green' : 'b-red'}">${r.registered? '✓' : '✗'}</span></td>
+      <td><span class="badge ${r.approved  ? 'b-green' : 'b-red'}">${r.approved  ? '✓' : '✗'}</span></td>
       <td><span class="badge ${status.cls}">${status.label}</span></td>
       <td style="display:flex;gap:5px">
         <button class="btn btn-outline btn-sm" onclick="window.APP.openEdit('${r.id}')">✏️</button>
@@ -121,9 +123,10 @@ function reportRow(r) {
     <td><span class="pump-tag">${r.pumpNum || '—'}</span></td>
     <td>${r.city}</td>
     <td>${r.date}</td>
-    <td><span class="badge ${r.orderDate   ? 'b-blue'  : 'b-red'}">${r.orderDate   || '—'}</span></td>
-    <td><span class="badge ${r.registered  ? 'b-green' : 'b-red'}">${r.registered  ? '✓' : '✗'}</span></td>
-    <td><span class="badge ${r.approved    ? 'b-green' : 'b-red'}">${r.approved    ? '✓' : '✗'}</span></td>
+    <td><span class="badge ${r.orderDate  ? 'b-blue'   : 'b-red'}">${r.orderDate  || '—'}</span></td>
+    <td><span class="badge ${r.worked     ? 'b-purple' : 'b-red'}">${r.worked     ? '✓' : '✗'}</span></td>
+    <td><span class="badge ${r.registered ? 'b-green'  : 'b-red'}">${r.registered ? '✓' : '✗'}</span></td>
+    <td><span class="badge ${r.approved   ? 'b-green'  : 'b-red'}">${r.approved   ? '✓' : '✗'}</span></td>
     <td><span class="badge ${st.cls}">${st.label}</span></td>
     <td><button class="btn btn-outline btn-sm" onclick="window.APP.openEdit('${r.id}')">تعديل</button></td>
   </tr>`;
