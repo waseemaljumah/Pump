@@ -3,8 +3,8 @@
 // ═══════════════════════════════════════
 
 import { initPumps, renderPumps, addPump, deletePump, loadPumpsForCity, populateCitySelects } from './pumps.js';
-import { initReports, saveReport, clearNewForm, openEdit, closeEdit, saveEdit, deleteReport, addFaultToForm, delFormFault, editFormFault, checkFormFault, addWorkToForm, delFormWork, editFormWork, checkFormWork, addFaultToEdit, delEditFault, editEditFault, checkEditFault, addWorkToEdit, delEditWork, editEditWork, checkEditWork, initNewForm, archiveReport, unarchiveReport, openRejectWork, closeRejectWork, saveRejectWork } from './reports.js';
-import { updateStats, renderDashboard, renderList } from './ui.js';
+import { initReports, saveReport, clearNewForm, openEdit, closeEdit, saveEdit, deleteReport, addFaultToForm, delFormFault, editFormFault, checkFormFault, addWorkToForm, delFormWork, editFormWork, checkFormWork, rejectFormWork, addFaultToEdit, delEditFault, editEditFault, checkEditFault, addWorkToEdit, delEditWork, editEditWork, checkEditWork, rejectEditWork, initNewForm, archiveReport, unarchiveReport } from './reports.js';
+import { updateStats, renderDashboard, renderList, renderArchived } from './ui.js';
 import { doExport, previewExport } from './export.js';
 import { toast, toggleCI, todayISO } from './utils.js';
 import { state } from './state.js';
@@ -14,6 +14,7 @@ const PAGES = {
   dashboard:  'pages/dashboard.html',
   new:        'pages/new-report.html',
   list:       'pages/list.html',
+  archived:   'pages/archived.html',
   pumps:      'pages/pumps.html',
   export:     'pages/export.html',
 };
@@ -46,6 +47,8 @@ async function loadPage(name) {
       state.pendingFilter = null;
     }
     renderList();
+  } else if (name === 'archived') {
+    renderArchived();
   } else if (name === 'pumps') {
     renderPumps();
   }
@@ -81,13 +84,12 @@ window.APP = {
   saveReport, clearNewForm,
   openEdit, closeEdit, saveEdit, deleteReport,
   addFaultToForm, delFormFault, editFormFault, checkFormFault,
-  addWorkToForm,  delFormWork,  editFormWork,  checkFormWork,
+  addWorkToForm,  delFormWork,  editFormWork,  checkFormWork, rejectFormWork,
   addFaultToEdit, delEditFault, editEditFault, checkEditFault,
-  addWorkToEdit,  delEditWork,  editEditWork,  checkEditWork,
+  addWorkToEdit,  delEditWork,  editEditWork,  checkEditWork, rejectEditWork,
   archiveReport, unarchiveReport,
-  openRejectWork, closeRejectWork, saveRejectWork,
   // ui
-  updateStats, renderDashboard, renderList,
+  updateStats, renderDashboard, renderList, renderArchived,
   // export
   doExport, previewExport,
   // utils
@@ -115,6 +117,7 @@ async function init() {
     updateStats();
     if (currentPage === 'dashboard') renderDashboard();
     if (currentPage === 'list')      renderList();
+    if (currentPage === 'archived')  renderArchived();
   });
 
   // تحميل الصفحة الأولى

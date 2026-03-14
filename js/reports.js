@@ -31,7 +31,7 @@ export function initNewForm() {
   formWorks  = [];
   document.getElementById('f_date').value = todayISO();
   renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault', 'window.APP.checkFormFault');
-  renderItems('worksList',  formWorks,  'window.APP.delFormWork',  'window.APP.editFormWork',  'window.APP.checkFormWork');
+  renderItems('worksList',  formWorks,  'window.APP.delFormWork',  'window.APP.editFormWork',  'window.APP.checkFormWork', 'window.APP.rejectFormWork');
 }
 
 export function addFaultToForm() {
@@ -63,23 +63,31 @@ export function addWorkToForm() {
   if (!v) return;
   formWorks.push({ text: v, date: nowStamp(), done: false });
   document.getElementById('f_workInput').value = '';
-  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork', 'window.APP.checkFormWork');
+  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork', 'window.APP.checkFormWork', 'window.APP.rejectFormWork');
 }
 
 export function delFormWork(i) {
   formWorks.splice(i, 1);
-  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork', 'window.APP.checkFormWork');
+  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork', 'window.APP.checkFormWork', 'window.APP.rejectFormWork');
 }
 
 export function editFormWork(i, newText) {
   if (!newText?.trim()) return;
   formWorks[i].text = newText.trim();
-  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork', 'window.APP.checkFormWork');
+  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork', 'window.APP.checkFormWork', 'window.APP.rejectFormWork');
 }
 
 export function checkFormWork(i) {
   formWorks[i].done = !formWorks[i].done;
-  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork', 'window.APP.checkFormWork');
+  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork', 'window.APP.checkFormWork', 'window.APP.rejectFormWork');
+}
+
+export function rejectFormWork(i, reason) {
+  formWorks[i].rejected = true;
+  formWorks[i].rejectionReason = reason;
+  formWorks[i].rejectedAt = nowStamp();
+  formWorks[i].done = false;
+  renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork', 'window.APP.checkFormWork', 'window.APP.rejectFormWork');
 }
 
 export async function saveReport() {
@@ -124,7 +132,7 @@ export function clearNewForm() {
   setCI('ci_app','cb_app', false);
   setCI('ci_worked','cb_worked', false);
   renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault', 'window.APP.checkFormFault');
-  renderItems('worksList',  formWorks,  'window.APP.delFormWork',  'window.APP.editFormWork',  'window.APP.checkFormWork');
+  renderItems('worksList',  formWorks,  'window.APP.delFormWork',  'window.APP.editFormWork',  'window.APP.checkFormWork', 'window.APP.rejectFormWork');
 }
 
 // ══════════════════════════════════════
@@ -158,7 +166,7 @@ export async function openEdit(id) {
   setCI('e_ci_worked','e_cb_worked', r.worked);
 
   renderItems('e_faultsList', editFaults, 'window.APP.delEditFault', 'window.APP.editEditFault', 'window.APP.checkEditFault');
-  renderItems('e_worksList',  editWorks,  'window.APP.delEditWork',  'window.APP.editEditWork',  'window.APP.checkEditWork');
+  renderItems('e_worksList',  editWorks,  'window.APP.delEditWork',  'window.APP.editEditWork',  'window.APP.checkEditWork', 'window.APP.rejectEditWork');
 
   // شريط التقدم
   const steps   = ['البلاغ','أمر العمل','تم العمل','التسجيل','الاعتماد'];
@@ -205,20 +213,28 @@ export function addWorkToEdit() {
   if (!v) return;
   editWorks.push({ text: v, date: nowStamp(), done: false });
   document.getElementById('e_workInput').value = '';
-  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork', 'window.APP.checkEditWork');
+  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork', 'window.APP.checkEditWork', 'window.APP.rejectEditWork');
 }
 export function delEditWork(i) {
   editWorks.splice(i, 1);
-  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork', 'window.APP.checkEditWork');
+  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork', 'window.APP.checkEditWork', 'window.APP.rejectEditWork');
 }
 export function editEditWork(i, newText) {
   if (!newText?.trim()) return;
   editWorks[i].text = newText.trim();
-  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork', 'window.APP.checkEditWork');
+  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork', 'window.APP.checkEditWork', 'window.APP.rejectEditWork');
 }
 export function checkEditWork(i) {
   editWorks[i].done = !editWorks[i].done;
-  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork', 'window.APP.checkEditWork');
+  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork', 'window.APP.checkEditWork', 'window.APP.rejectEditWork');
+}
+
+export function rejectEditWork(i, reason) {
+  editWorks[i].rejected = true;
+  editWorks[i].rejectionReason = reason;
+  editWorks[i].rejectedAt = nowStamp();
+  editWorks[i].done = false;
+  renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork', 'window.APP.checkEditWork', 'window.APP.rejectEditWork');
 }
 
 export async function saveEdit() {
@@ -271,72 +287,4 @@ export async function unarchiveReport(id) {
     archivedAt: null
   });
   toast('📤 تم إلغاء الأرشفة', 'ok');
-}
-
-// ══════════════════════════════════════
-// رفض العمل
-// ══════════════════════════════════════
-export function openRejectWork(id) {
-  const r = state.reports.find(x => x.id === id);
-  if (!r) return;
-  
-  const overlay = document.getElementById('rejectOverlay');
-  if (!overlay) {
-    // إنشاء نافذة رفض العمل
-    const div = document.createElement('div');
-    div.id = 'rejectOverlay';
-    div.className = 'overlay';
-    div.innerHTML = `
-      <div class="modal modal-md">
-        <div class="modal-header">
-          <h3>رفض العمل</h3>
-          <button class="close-btn" onclick="window.APP.closeRejectWork()">✕</button>
-        </div>
-        <div class="modal-body">
-          <p style="margin-bottom:15px;color:#666;">البلاغ: <strong id="rejectLabel"></strong></p>
-          <label class="label">سبب رفض العمل:</label>
-          <textarea id="rejectReason" class="input" rows="4" placeholder="اكتب سبب رفض العمل..."></textarea>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-outline" onclick="window.APP.closeRejectWork()">إلغاء</button>
-          <button class="btn btn-danger" onclick="window.APP.saveRejectWork()">تأكيد الرفض</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(div);
-  }
-  
-  document.getElementById('rejectLabel').textContent = r.num ? 'رقم ' + r.num : r.pumpNum || '';
-  document.getElementById('rejectReason').value = r.rejectionReason || '';
-  
-  // حفظ ID البلاغ الحالي
-  window._currentRejectId = id;
-  
-  document.getElementById('rejectOverlay').classList.add('open');
-}
-
-export function closeRejectWork() {
-  document.getElementById('rejectOverlay').classList.remove('open');
-  window._currentRejectId = null;
-}
-
-export async function saveRejectWork() {
-  const id = window._currentRejectId;
-  if (!id) return;
-  
-  const reason = document.getElementById('rejectReason').value.trim();
-  if (!reason) {
-    toast('يجب كتابة سبب الرفض', 'warn');
-    return;
-  }
-  
-  await Update(Doc('reports', id), {
-    workRejected: true,
-    rejectionReason: reason,
-    rejectedAt: Date.now(),
-    worked: false
-  });
-  
-  closeRejectWork();
-  toast('❌ تم رفض العمل', 'warn');
 }

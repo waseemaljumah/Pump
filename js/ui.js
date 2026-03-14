@@ -66,19 +66,17 @@ export function renderList() {
   const q       = (document.getElementById('fl_q')?.value || '').toLowerCase();
   const city    = document.getElementById('fl_city')?.value || '';
   const st      = document.getElementById('fl_st')?.value   || '';
-  const archive = document.getElementById('fl_archive')?.value || '';
   const sort    = document.getElementById('fl_sort')?.value || 'desc';
 
   let data = state.reports.filter(r => {
+    // إخفاء البلاغات المؤرشفة من القائمة الرئيسية
+    if (r.archived === true) return false;
+    
     if (q && !(r.num||'').toLowerCase().includes(q) &&
              !(r.pumpNum||'').toLowerCase().includes(q) &&
              !r.city.includes(q)) return false;
     if (city && r.city !== city) return false;
     if (!matchFilter(r, st))     return false;
-    
-    // فلتر الأرشيف
-    if (archive === 'active' && r.archived === true) return false;
-    if (archive === 'archived' && r.archived !== true) return false;
     
     return true;
   });
@@ -104,33 +102,85 @@ export function renderList() {
 
   tbody.innerHTML = data.map((r, i) => {
     const status = getStatus(r);
-    const isArchived = r.archived === true;
     
-    return `<tr style="${isArchived ? 'opacity:0.6;background:#f9f9f9;' : ''}">
+    return `<tr>
       <td>${i + 1}</td>
       <td><strong>${r.num || '—'}</strong></td>
       <td><span class="pump-tag">${r.pumpNum || '—'}</span></td>
       <td>${r.city}</td>
       <td>${r.date}</td>
       <td><span class="badge ${r.orderDate ? 'b-blue' : 'b-red'}">${r.orderDate || '—'}</span></td>
-      <td>
-        <span class="badge ${r.worked ? 'b-purple': r.workRejected ? 'b-orange' : 'b-red'}">
-          ${r.worked ? '✓' : r.workRejected ? '✗ مرفوض' : '✗'}
-        </span>
-        ${r.workRejected ? `<div style="font-size:11px;color:#ff6b35;margin-top:2px;" title="${r.rejectionReason || ''}">السبب: ${r.rejectionReason || '—'}</div>` : ''}
-      </td>
+      <td><span class="badge ${r.worked ? 'b-purple': 'b-red'}">${r.worked ? '✓' : '✗'}</span></td>
       <td><span class="badge ${r.registered? 'b-green' : 'b-red'}">${r.registered? '✓' : '✗'}</span></td>
       <td><span class="badge ${r.approved  ? 'b-green' : 'b-red'}">${r.approved  ? '✓' : '✗'}</span></td>
-      <td>
-        ${isArchived ? '<span class="badge b-gray">📦 مؤرشف</span>' : `<span class="badge ${status.cls}">${status.label}</span>`}
-      </td>
+      <td><span class="badge ${status.cls}">${status.label}</span></td>
       <td style="display:flex;gap:5px;flex-wrap:wrap;">
         <button class="btn btn-outline btn-sm" onclick="window.APP.openEdit('${r.id}')">✏️</button>
-        ${!r.workRejected && !r.worked ? `<button class="btn btn-warning btn-sm" onclick="window.APP.openRejectWork('${r.id}')" title="رفض العمل">❌</button>` : ''}
-        ${isArchived 
-          ? `<button class="btn btn-success btn-sm" onclick="window.APP.unarchiveReport('${r.id}')" title="إلغاء الأرشفة">📤</button>`
-          : `<button class="btn btn-primary btn-sm" onclick="window.APP.archiveReport('${r.id}')" title="أرشفة">📦</button>`
-        }
+        <button class="btn btn-primary btn-sm" onclick="window.APP.archiveReport('${r.id}')" title="أرشفة">📦</button>
+        <button class="btn btn-danger  btn-sm" onclick="window.APP.deleteReport('${r.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════
+// صفحة الأرشيف
+// ══════════════════════════════════════
+export function renderArchived() {
+  const q    = (document.getElementById('ar_q')?.value || '').toLowerCase();
+  const city = document.getElementById('ar_city')?.value || '';
+  const sort = document.getElementById('ar_sort')?.value || 'desc';
+
+  let data = state.reports.filter(r => {
+    // فقط البلاغات المؤرشفة
+    if (r.archived !== true) return false;
+    
+    if (q && !(r.num||'').toLowerCase().includes(q) &&
+             !(r.pumpNum||'').toLowerCase().includes(q) &&
+             !r.city.includes(q)) return false;
+    if (city && r.city !== city) return false;
+    
+    return true;
+  });
+
+  data.sort((a, b) =>
+    sort === 'desc'
+      ? (b.archivedAt || 0) - (a.archivedAt || 0)
+      : (a.archivedAt || 0) - (b.archivedAt || 0)
+  );
+
+  const countEl = document.getElementById('archivedCount');
+  if (countEl) countEl.textContent = `${data.length} بلاغ مؤرشف`;
+
+  const tbody = document.getElementById('archivedBody');
+  if (!tbody) return;
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="12">
+      <div class="empty"><div class="empty-icon">📦</div><p>لا توجد بلاغات مؤرشفة</p></div>
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = data.map((r, i) => {
+    const status = getStatus(r);
+    const archivedDate = r.archivedAt ? new Date(r.archivedAt).toLocaleDateString('ar-SA') : '—';
+    
+    return `<tr style="background:#f9f9f9;">
+      <td>${i + 1}</td>
+      <td><strong>${r.num || '—'}</strong></td>
+      <td><span class="pump-tag">${r.pumpNum || '—'}</span></td>
+      <td>${r.city}</td>
+      <td>${r.date}</td>
+      <td><span class="badge b-gray">${archivedDate}</span></td>
+      <td><span class="badge ${r.orderDate ? 'b-blue' : 'b-red'}">${r.orderDate || '—'}</span></td>
+      <td><span class="badge ${r.worked ? 'b-purple': 'b-red'}">${r.worked ? '✓' : '✗'}</span></td>
+      <td><span class="badge ${r.registered? 'b-green' : 'b-red'}">${r.registered? '✓' : '✗'}</span></td>
+      <td><span class="badge ${r.approved  ? 'b-green' : 'b-red'}">${r.approved  ? '✓' : '✗'}</span></td>
+      <td><span class="badge ${status.cls}">${status.label}</span></td>
+      <td style="display:flex;gap:5px;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="window.APP.openEdit('${r.id}')">✏️</button>
+        <button class="btn btn-success btn-sm" onclick="window.APP.unarchiveReport('${r.id}')" title="إلغاء الأرشفة">📤 استعادة</button>
         <button class="btn btn-danger  btn-sm" onclick="window.APP.deleteReport('${r.id}')">🗑️</button>
       </td>
     </tr>`;
@@ -146,18 +196,12 @@ function reportRow(r) {
     <td>${r.city}</td>
     <td>${r.date}</td>
     <td><span class="badge ${r.orderDate  ? 'b-blue'   : 'b-red'}">${r.orderDate  || '—'}</span></td>
-    <td>
-      <span class="badge ${r.worked ? 'b-purple': r.workRejected ? 'b-orange' : 'b-red'}">
-        ${r.worked ? '✓' : r.workRejected ? '✗ مرفوض' : '✗'}
-      </span>
-      ${r.workRejected ? `<div style="font-size:10px;color:#ff6b35;margin-top:2px;" title="${r.rejectionReason || ''}">السبب: ${(r.rejectionReason || '').substring(0, 30)}...</div>` : ''}
-    </td>
+    <td><span class="badge ${r.worked     ? 'b-purple' : 'b-red'}">${r.worked     ? '✓' : '✗'}</span></td>
     <td><span class="badge ${r.registered ? 'b-green'  : 'b-red'}">${r.registered ? '✓' : '✗'}</span></td>
     <td><span class="badge ${r.approved   ? 'b-green'  : 'b-red'}">${r.approved   ? '✓' : '✗'}</span></td>
     <td><span class="badge ${st.cls}">${st.label}</span></td>
     <td style="display:flex;gap:5px;flex-wrap:wrap;">
       <button class="btn btn-outline btn-sm" onclick="window.APP.openEdit('${r.id}')">تعديل</button>
-      ${!r.workRejected && !r.worked ? `<button class="btn btn-warning btn-sm" onclick="window.APP.openRejectWork('${r.id}')" title="رفض العمل">❌</button>` : ''}
       <button class="btn btn-primary btn-sm" onclick="window.APP.archiveReport('${r.id}')" title="أرشفة">📦</button>
     </td>
   </tr>`;

@@ -1,0 +1,34 @@
+<!-- pages/archived.html — الأرشيف -->
+<div class="ph">
+  <div>
+    <div class="ph-title">📦 الأرشيف</div>
+    <div class="ph-sub" id="archivedCount">—</div>
+  </div>
+  <button class="btn btn-outline" onclick="APP.navTo('list')">← رجوع للقائمة</button>
+</div>
+
+<div class="fb">
+  <input  type="text" id="ar_q"    placeholder="🔍 بحث برقم البلاغ أو المضخة..." oninput="APP.renderArchived()" style="max-width:240px">
+  <select id="ar_city" data-city-select="filter" onchange="APP.renderArchived()">
+    <option value="">كل البلديات</option>
+  </select>
+  <select id="ar_sort" onchange="APP.renderArchived()">
+    <option value="desc">الأحدث أولاً</option>
+    <option value="asc">الأقدم أولاً</option>
+  </select>
+</div>
+
+<div class="card">
+  <div class="tw">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>رقم البلاغ</th><th>المضخة</th><th>البلدية</th>
+          <th>تاريخ البلاغ</th><th>تاريخ الأرشفة</th><th>أمر العمل</th><th>تم العمل</th>
+          <th>الأعمال</th><th>الاعتماد</th><th>الحالة</th><th>إجراء</th>
+        </tr>
+      </thead>
+      <tbody id="archivedBody"></tbody>
+    </table>
+  </div>
+</div>

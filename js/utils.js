@@ -71,25 +71,33 @@ export function getCI(ciId) {
 }
 
 // ─── Render fault / work list ───
-export function renderItems(containerId, arr, delFn, editFn, checkFn) {
+export function renderItems(containerId, arr, delFn, editFn, checkFn, rejectFn) {
   const el = document.getElementById(containerId);
   if (!el) return;
   if (!arr.length) {
     el.innerHTML = '<div class="empty-items">لا يوجد عناصر مضافة بعد</div>';
     return;
   }
+  
+  // التحقق من أن هذا لائحة أعمال (worksList)
+  const isWorksList = containerId.includes('worksList') || containerId.includes('works');
+  
   el.innerHTML = arr.map((item, i) => {
     const checked = !!item.done;
+    const rejected = !!item.rejected;
     const checkCall = checkFn ? `onclick="${checkFn}(${i})"` : '';
+    
     return `
-    <div class="fault-item ${checked ? 'fault-item-done' : ''}" id="fi_${containerId}_${i}">
-      ${checkFn ? `<div class="item-check ${checked ? 'item-check-on' : ''}" ${checkCall} title="تحديد كمنجز">${checked ? '✓' : ''}</div>` : ''}
+    <div class="fault-item ${checked ? 'fault-item-done' : ''} ${rejected ? 'fault-item-rejected' : ''}" id="fi_${containerId}_${i}">
+      ${checkFn ? `<div class="item-check ${checked ? 'item-check-on' : rejected ? 'item-check-rejected' : ''}" ${checkCall} title="تحديد كمنجز">${checked ? '✓' : rejected ? '✗' : ''}</div>` : ''}
       <div class="fault-item-body">
-        <div class="fault-item-text ${checked ? 'text-striked' : ''}" id="fit_${containerId}_${i}">${escHtml(item.text)}</div>
+        <div class="fault-item-text ${checked ? 'text-striked' : rejected ? 'text-rejected' : ''}" id="fit_${containerId}_${i}">${escHtml(item.text)}</div>
         <div class="fault-item-date">📅 ${item.date}</div>
+        ${rejected ? `<div class="fault-item-rejection"><strong>سبب الرفض:</strong> ${escHtml(item.rejectionReason || 'غير محدد')}</div>` : ''}
       </div>
       <div class="fault-item-actions">
         <button class="btn-edit-item" onclick="window._startInlineEdit('${containerId}',${i},'${editFn}')">✏️ تعديل</button>
+        ${isWorksList && !rejected && !checked && rejectFn ? `<button class="btn-reject-item" onclick="window._startRejectWork('${containerId}',${i},'${rejectFn}')" title="رفض العمل">❌ رفض</button>` : ''}
         <button class="btn-del-item"  onclick="${delFn}(${i})">🗑️ حذف</button>
       </div>
     </div>`;
@@ -130,6 +138,52 @@ window._saveInlineEdit = function(containerId, i, editFn) {
 };
 
 window._cancelInlineEdit = function(containerId, i, oldText) {
+  const textEl  = document.getElementById(`fit_${containerId}_${i}`);
+  const wrapper = document.getElementById(`fi_${containerId}_${i}`);
+  if (textEl)  textEl.innerHTML = oldText;
+  const actEl = wrapper?.querySelector('.fault-item-actions');
+  if (actEl) actEl.style.display = '';
+};
+
+// ─── Reject work inline ───
+window._startRejectWork = function(containerId, i, rejectFn) {
+  const wrapper = document.getElementById(`fi_${containerId}_${i}`);
+  const textEl  = document.getElementById(`fit_${containerId}_${i}`);
+  if (!wrapper || !textEl) return;
+  
+  const currentText = textEl.textContent.trim();
+  
+  textEl.innerHTML = `
+    <div style="margin-top:8px;">
+      <label style="display:block;margin-bottom:5px;font-weight:600;color:#e65100;">سبب رفض العمل:</label>
+      <textarea class="edit-inline-input" id="rej_${containerId}_${i}" placeholder="اكتب سبب رفض هذا العمل..." rows="3"></textarea>
+      <div class="edit-inline-btns">
+        <button class="btn-reject-confirm" onclick="window._saveRejectWork('${containerId}',${i},'${rejectFn}')">❌ تأكيد الرفض</button>
+        <button class="btn-cancel-inline" onclick="window._cancelRejectWork('${containerId}',${i},'${escAttr(currentText)}')">إلغاء</button>
+      </div>
+    </div>`;
+  
+  wrapper.querySelector('.fault-item-actions').style.display = 'none';
+  const ta = document.getElementById(`rej_${containerId}_${i}`);
+  if (ta) ta.focus();
+};
+
+window._saveRejectWork = function(containerId, i, rejectFn) {
+  const ta = document.getElementById(`rej_${containerId}_${i}`);
+  if (!ta) return;
+  const reason = ta.value.trim();
+  if (!reason) {
+    alert('يجب كتابة سبب الرفض');
+    return;
+  }
+  
+  const fn = rejectFn.replace('window.APP.', '');
+  if (window.APP && typeof window.APP[fn] === 'function') {
+    window.APP[fn](i, reason);
+  }
+};
+
+window._cancelRejectWork = function(containerId, i, oldText) {
   const textEl  = document.getElementById(`fit_${containerId}_${i}`);
   const wrapper = document.getElementById(`fi_${containerId}_${i}`);
   if (textEl)  textEl.innerHTML = oldText;
