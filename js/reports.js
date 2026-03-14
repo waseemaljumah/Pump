@@ -251,3 +251,92 @@ export async function deleteReport(id) {
   await Delete(Doc('reports', id));
   toast('🗑️ تم الحذف', 'warn');
 }
+
+// ══════════════════════════════════════
+// الأرشفة
+// ══════════════════════════════════════
+export async function archiveReport(id) {
+  if (!confirm('هل تريد أرشفة هذا البلاغ؟')) return;
+  await Update(Doc('reports', id), {
+    archived: true,
+    archivedAt: Date.now()
+  });
+  toast('📦 تم أرشفة البلاغ', 'ok');
+}
+
+export async function unarchiveReport(id) {
+  if (!confirm('هل تريد إلغاء أرشفة هذا البلاغ؟')) return;
+  await Update(Doc('reports', id), {
+    archived: false,
+    archivedAt: null
+  });
+  toast('📤 تم إلغاء الأرشفة', 'ok');
+}
+
+// ══════════════════════════════════════
+// رفض العمل
+// ══════════════════════════════════════
+export function openRejectWork(id) {
+  const r = state.reports.find(x => x.id === id);
+  if (!r) return;
+  
+  const overlay = document.getElementById('rejectOverlay');
+  if (!overlay) {
+    // إنشاء نافذة رفض العمل
+    const div = document.createElement('div');
+    div.id = 'rejectOverlay';
+    div.className = 'overlay';
+    div.innerHTML = `
+      <div class="modal modal-md">
+        <div class="modal-header">
+          <h3>رفض العمل</h3>
+          <button class="close-btn" onclick="window.APP.closeRejectWork()">✕</button>
+        </div>
+        <div class="modal-body">
+          <p style="margin-bottom:15px;color:#666;">البلاغ: <strong id="rejectLabel"></strong></p>
+          <label class="label">سبب رفض العمل:</label>
+          <textarea id="rejectReason" class="input" rows="4" placeholder="اكتب سبب رفض العمل..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="window.APP.closeRejectWork()">إلغاء</button>
+          <button class="btn btn-danger" onclick="window.APP.saveRejectWork()">تأكيد الرفض</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(div);
+  }
+  
+  document.getElementById('rejectLabel').textContent = r.num ? 'رقم ' + r.num : r.pumpNum || '';
+  document.getElementById('rejectReason').value = r.rejectionReason || '';
+  
+  // حفظ ID البلاغ الحالي
+  window._currentRejectId = id;
+  
+  document.getElementById('rejectOverlay').classList.add('open');
+}
+
+export function closeRejectWork() {
+  document.getElementById('rejectOverlay').classList.remove('open');
+  window._currentRejectId = null;
+}
+
+export async function saveRejectWork() {
+  const id = window._currentRejectId;
+  if (!id) return;
+  
+  const reason = document.getElementById('rejectReason').value.trim();
+  if (!reason) {
+    toast('يجب كتابة سبب الرفض', 'warn');
+    return;
+  }
+  
+  await Update(Doc('reports', id), {
+    workRejected: true,
+    rejectionReason: reason,
+    rejectedAt: Date.now(),
+    worked: false
+  });
+  
+  closeRejectWork();
+  toast('❌ تم رفض العمل', 'warn');
+}

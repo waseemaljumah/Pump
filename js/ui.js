@@ -9,7 +9,7 @@ import { getStatus, matchFilter } from './utils.js';
 // الإحصائيات العلوية
 // ══════════════════════════════════════
 export function updateStats() {
-  const R     = state.reports;
+  const R     = state.reports.filter(r => !r.archived); // تجاهل المؤرشفة
   const total = R.length;
   const done  = R.filter(r => getStatus(r).code === 'done').length;
 
@@ -34,7 +34,9 @@ export function updateStats() {
 // ══════════════════════════════════════
 export function renderDashboard() {
   updateStats();
-  const urgent = state.reports.filter(r => getStatus(r).code !== 'done').slice(0, 12);
+  const urgent = state.reports
+    .filter(r => !r.archived && getStatus(r).code !== 'done')
+    .slice(0, 12);
   const el = document.getElementById('dashTable');
   if (!el) return;
 
@@ -61,10 +63,11 @@ export function renderDashboard() {
 // قائمة البلاغات
 // ══════════════════════════════════════
 export function renderList() {
-  const q    = (document.getElementById('fl_q')?.value || '').toLowerCase();
-  const city = document.getElementById('fl_city')?.value || '';
-  const st   = document.getElementById('fl_st')?.value   || '';
-  const sort = document.getElementById('fl_sort')?.value || 'desc';
+  const q       = (document.getElementById('fl_q')?.value || '').toLowerCase();
+  const city    = document.getElementById('fl_city')?.value || '';
+  const st      = document.getElementById('fl_st')?.value   || '';
+  const archive = document.getElementById('fl_archive')?.value || '';
+  const sort    = document.getElementById('fl_sort')?.value || 'desc';
 
   let data = state.reports.filter(r => {
     if (q && !(r.num||'').toLowerCase().includes(q) &&
@@ -72,6 +75,11 @@ export function renderList() {
              !r.city.includes(q)) return false;
     if (city && r.city !== city) return false;
     if (!matchFilter(r, st))     return false;
+    
+    // فلتر الأرشيف
+    if (archive === 'active' && r.archived === true) return false;
+    if (archive === 'archived' && r.archived !== true) return false;
+    
     return true;
   });
 
@@ -96,19 +104,33 @@ export function renderList() {
 
   tbody.innerHTML = data.map((r, i) => {
     const status = getStatus(r);
-    return `<tr>
+    const isArchived = r.archived === true;
+    
+    return `<tr style="${isArchived ? 'opacity:0.6;background:#f9f9f9;' : ''}">
       <td>${i + 1}</td>
       <td><strong>${r.num || '—'}</strong></td>
       <td><span class="pump-tag">${r.pumpNum || '—'}</span></td>
       <td>${r.city}</td>
       <td>${r.date}</td>
       <td><span class="badge ${r.orderDate ? 'b-blue' : 'b-red'}">${r.orderDate || '—'}</span></td>
-      <td><span class="badge ${r.worked    ? 'b-purple': 'b-red'}">${r.worked    ? '✓' : '✗'}</span></td>
+      <td>
+        <span class="badge ${r.worked ? 'b-purple': r.workRejected ? 'b-orange' : 'b-red'}">
+          ${r.worked ? '✓' : r.workRejected ? '✗ مرفوض' : '✗'}
+        </span>
+        ${r.workRejected ? `<div style="font-size:11px;color:#ff6b35;margin-top:2px;" title="${r.rejectionReason || ''}">السبب: ${r.rejectionReason || '—'}</div>` : ''}
+      </td>
       <td><span class="badge ${r.registered? 'b-green' : 'b-red'}">${r.registered? '✓' : '✗'}</span></td>
       <td><span class="badge ${r.approved  ? 'b-green' : 'b-red'}">${r.approved  ? '✓' : '✗'}</span></td>
-      <td><span class="badge ${status.cls}">${status.label}</span></td>
-      <td style="display:flex;gap:5px">
+      <td>
+        ${isArchived ? '<span class="badge b-gray">📦 مؤرشف</span>' : `<span class="badge ${status.cls}">${status.label}</span>`}
+      </td>
+      <td style="display:flex;gap:5px;flex-wrap:wrap;">
         <button class="btn btn-outline btn-sm" onclick="window.APP.openEdit('${r.id}')">✏️</button>
+        ${!r.workRejected && !r.worked ? `<button class="btn btn-warning btn-sm" onclick="window.APP.openRejectWork('${r.id}')" title="رفض العمل">❌</button>` : ''}
+        ${isArchived 
+          ? `<button class="btn btn-success btn-sm" onclick="window.APP.unarchiveReport('${r.id}')" title="إلغاء الأرشفة">📤</button>`
+          : `<button class="btn btn-primary btn-sm" onclick="window.APP.archiveReport('${r.id}')" title="أرشفة">📦</button>`
+        }
         <button class="btn btn-danger  btn-sm" onclick="window.APP.deleteReport('${r.id}')">🗑️</button>
       </td>
     </tr>`;
@@ -124,11 +146,20 @@ function reportRow(r) {
     <td>${r.city}</td>
     <td>${r.date}</td>
     <td><span class="badge ${r.orderDate  ? 'b-blue'   : 'b-red'}">${r.orderDate  || '—'}</span></td>
-    <td><span class="badge ${r.worked     ? 'b-purple' : 'b-red'}">${r.worked     ? '✓' : '✗'}</span></td>
+    <td>
+      <span class="badge ${r.worked ? 'b-purple': r.workRejected ? 'b-orange' : 'b-red'}">
+        ${r.worked ? '✓' : r.workRejected ? '✗ مرفوض' : '✗'}
+      </span>
+      ${r.workRejected ? `<div style="font-size:10px;color:#ff6b35;margin-top:2px;" title="${r.rejectionReason || ''}">السبب: ${(r.rejectionReason || '').substring(0, 30)}...</div>` : ''}
+    </td>
     <td><span class="badge ${r.registered ? 'b-green'  : 'b-red'}">${r.registered ? '✓' : '✗'}</span></td>
     <td><span class="badge ${r.approved   ? 'b-green'  : 'b-red'}">${r.approved   ? '✓' : '✗'}</span></td>
     <td><span class="badge ${st.cls}">${st.label}</span></td>
-    <td><button class="btn btn-outline btn-sm" onclick="window.APP.openEdit('${r.id}')">تعديل</button></td>
+    <td style="display:flex;gap:5px;flex-wrap:wrap;">
+      <button class="btn btn-outline btn-sm" onclick="window.APP.openEdit('${r.id}')">تعديل</button>
+      ${!r.workRejected && !r.worked ? `<button class="btn btn-warning btn-sm" onclick="window.APP.openRejectWork('${r.id}')" title="رفض العمل">❌</button>` : ''}
+      <button class="btn btn-primary btn-sm" onclick="window.APP.archiveReport('${r.id}')" title="أرشفة">📦</button>
+    </td>
   </tr>`;
 }
 

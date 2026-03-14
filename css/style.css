@@ -140,6 +140,8 @@ input:disabled, select:disabled { background:var(--surface2); color:var(--text-d
 .btn-primary:hover { background:var(--primary-dark); }
 .btn-success { background:var(--green-light); color:var(--green); border:1px solid #a7f3d0; }
 .btn-success:hover { background:#ccf7e5; }
+.btn-warning { background:#fff3e0; color:#e65100; border:1px solid #ffb74d; }
+.btn-warning:hover { background:#ffe0b2; }
 .btn-danger  { background:var(--red-light); color:var(--red); border:1px solid #fca5a5; }
 .btn-danger:hover  { background:#fdc5c5; }
 .btn-outline { background:#fff; color:var(--primary); border:1.5px solid var(--primary); }
