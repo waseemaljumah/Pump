@@ -1,0 +1,45 @@
+<!-- pages/settings.html — إعدادات الظهور (للأدمن فقط) -->
+<div class="ph">
+  <div>
+    <div class="ph-title">👁️ إعدادات الظهور</div>
+    <div class="ph-sub">تحكّم بما يراه الزائر بدون تسجيل دخول</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><div class="card-title-left">🌐 الأقسام المتاحة للزوار</div></div>
+
+  <div class="setting-row">
+    <div>
+      <div class="setting-name">📊 لوحة التحكم</div>
+      <div class="setting-desc">الإحصائيات والبلاغات التي تحتاج متابعة (للعرض فقط)</div>
+    </div>
+    <label class="switch"><input type="checkbox" id="st_publicDashboard" onchange="APP.setSetting('publicDashboard', this.checked)"><span class="slider"></span></label>
+  </div>
+
+  <div class="setting-row">
+    <div>
+      <div class="setting-name">📋 قائمة البلاغات</div>
+      <div class="setting-desc">عرض البلاغات بدون أزرار تعديل أو حذف</div>
+    </div>
+    <label class="switch"><input type="checkbox" id="st_publicList" onchange="APP.setSetting('publicList', this.checked)"><span class="slider"></span></label>
+  </div>
+
+  <div class="setting-row">
+    <div>
+      <div class="setting-name">📥 تصدير Excel</div>
+      <div class="setting-desc">يسمح للزائر بتصدير البلاغات الظاهرة له فقط</div>
+    </div>
+    <label class="switch"><input type="checkbox" id="st_publicExport" onchange="APP.setSetting('publicExport', this.checked)"><span class="slider"></span></label>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><div class="card-title-left">🙈 البلاغات المخفية</div></div>
+  <p style="font-size:13.5px;color:var(--text-mid);line-height:1.8">
+    عدد البلاغات المخفية عن الزوار حالياً: <strong id="st_hiddenCount">0</strong><br>
+    لإخفاء بلاغ أو إظهاره اضغط زر <strong>🙈 إخفاء / 👁️ إظهار</strong> بجانبه في قائمة البلاغات.
+    البلاغ المخفي لا يظهر للزائر في أي قسم (القائمة، لوحة التحكم، التصدير).
+  </p>
+  <div class="btn-row"><button class="btn btn-outline" onclick="APP.navTo('list')">📋 فتح قائمة البلاغات</button></div>
+</div>

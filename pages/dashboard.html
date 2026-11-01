@@ -4,7 +4,7 @@
     <div class="ph-title">📊 لوحة التحكم</div>
     <div class="ph-sub" id="dashSub">—</div>
   </div>
-  <button class="btn btn-primary" onclick="APP.navTo('new')">➕ بلاغ جديد</button>
+  <button class="btn btn-primary admin-only" onclick="APP.navTo('new')">➕ بلاغ جديد</button>
 </div>
 
 <div class="stat-grid">
@@ -21,7 +21,7 @@
 <div class="card">
   <div class="card-title">
     <div class="card-title-left">⚠️ بلاغات تحتاج متابعة</div>
-    <button class="btn btn-gray btn-sm" onclick="APP.navTo('list')">عرض الكل</button>
+    <button class="btn btn-gray btn-sm" id="dashAllBtn" onclick="APP.navTo('list')">عرض الكل</button>
   </div>
   <div id="dashTable"><div class="loader"><div class="spin"></div> جار التحميل...</div></div>
 </div>

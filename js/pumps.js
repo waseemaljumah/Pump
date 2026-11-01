@@ -4,7 +4,7 @@
 
 import { Col, Doc, Add, Delete, Listen, Q, OBy } from './firebase.js';
 import { state } from './state.js';
-import { toast } from './utils.js';
+import { toast, escHtml } from './utils.js';
 
 const CITIES = [
   'البيداء (العقيق)','ابيار الماشي','أحد','العيون','العوالي','قباء','المليليح','المندسة','المركزية (الحرم)','اخرى',
@@ -12,11 +12,11 @@ const CITIES = [
 
 // ─── بدء الاستماع لتغييرات المضخات ───
 export function initPumps(onUpdate) {
-  Listen(Col('pumps'), snap => {
+  return Listen(Col('pumps'), snap => {
     state.pumps = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     populateCitySelects();
     if (typeof onUpdate === 'function') onUpdate();
-  });
+  }, err => console.warn('pumps listener:', err));
 }
 
 // ─── ملء قوائم البلديات ───
@@ -36,22 +36,150 @@ export function populateCitySelects() {
   });
 }
 
-// ─── تحميل مضخات البلدية في قائمة ───
-export function loadPumpsForCity(citySelId, pumpSelId) {
-  const city     = document.getElementById(citySelId)?.value;
-  const pumpSel  = document.getElementById(pumpSelId);
-  if (!pumpSel) return;
+// ══════════════════════════════════════
+// اختيار المضخة بالبحث برقمها (البلدية تظهر تلقائياً)
+// prefix: 'f' للنموذج الجديد، 'e' لنافذة التعديل
+// ══════════════════════════════════════
+const pickers = {};   // prefix → { id, num, city, label }
+const activeIdx = {}; // prefix → فهرس الاقتراح المحدد بالأسهم
+const $ = id => document.getElementById(id);
 
-  const filtered = state.pumps.filter(p => p.city === city);
-  if (!filtered.length) {
-    pumpSel.innerHTML = '<option value="">لا توجد مضخات لهذه البلدية — أضفها أولاً</option>';
-  } else {
-    pumpSel.innerHTML =
-      '<option value="">اختر المضخة</option>' +
-      filtered.map(p =>
-        `<option value="${p.id}">${p.num}${p.desc ? ' — ' + p.desc : ''}</option>`
-      ).join('');
+// توحيد الأرقام العربية/الفارسية والحروف الصغيرة للبحث
+function norm(s) {
+  return String(s ?? '')
+    .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+    .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+    .toLowerCase().trim();
+}
+
+function pumpLabel(p) { return p.num + (p.desc ? ' — ' + p.desc : ''); }
+
+function findMatches(q) {
+  const nq = norm(q);
+  const rows = state.pumps.map(p => {
+    const n = norm(p.num);
+    let rank = -1;
+    if (!nq)                         rank = 0;
+    else if (n === nq)               rank = 0;
+    else if (n.startsWith(nq))       rank = 1;
+    else if (n.includes(nq))         rank = 2;
+    else if (norm(p.city).includes(nq) || norm(p.desc).includes(nq)) rank = 3;
+    return { p, rank };
+  }).filter(x => x.rank >= 0);
+  rows.sort((a, b) => a.rank - b.rank ||
+    String(a.p.num).localeCompare(String(b.p.num), 'ar', { numeric: true }));
+  return rows.slice(0, 8).map(x => x.p);
+}
+
+function setPicked(prefix, info) {
+  pickers[prefix] = info;
+  const inp = $(prefix + '_pumpSearch');
+  if (inp) { inp.value = info.label; inp.classList.add('picked'); }
+  if ($(prefix + '_pumpId')) $(prefix + '_pumpId').value = info.id || '';
+  if ($(prefix + '_city'))   $(prefix + '_city').value   = info.city || '';
+  hideBox(prefix);
+}
+
+function clearPicked(prefix) {
+  delete pickers[prefix];
+  $(prefix + '_pumpSearch')?.classList.remove('picked');
+  if ($(prefix + '_pumpId')) $(prefix + '_pumpId').value = '';
+  if ($(prefix + '_city'))   $(prefix + '_city').value   = '';
+}
+
+function pickPump(prefix, p) {
+  setPicked(prefix, { id: p.id, num: pumpLabel(p), city: p.city, label: p.num });
+}
+
+function hideBox(prefix) {
+  const box = $(prefix + '_pumpBox');
+  if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+  activeIdx[prefix] = -1;
+}
+
+// عند الكتابة أو التركيز
+export function pumpSearch(prefix) {
+  const inp = $(prefix + '_pumpSearch'), box = $(prefix + '_pumpBox');
+  if (!inp || !box) return;
+
+  const sel = pickers[prefix];
+  if (sel) {
+    if (inp.value === sel.label) { hideBox(prefix); return; } // اختيار قائم ولم يتغير
+    clearPicked(prefix);                                     // تغيّر النص → أعد الاختيار
   }
+
+  const res = findMatches(inp.value);
+  box._items = res;
+  activeIdx[prefix] = -1;
+
+  if (!state.pumps.length) {
+    box.innerHTML = '<div class="pump-empty">لا توجد مضخات مسجلة — أضفها من «إدارة المضخات»</div>';
+  } else if (!res.length) {
+    box.innerHTML = '<div class="pump-empty">لا توجد مضخة مطابقة</div>';
+  } else {
+    box.innerHTML = res.map(p => `
+      <div class="pump-opt" onclick="window.APP.pumpPick('${prefix}','${p.id}')">
+        <span class="po-num">${escHtml(p.num)}</span>
+        <span class="po-city">${escHtml(p.city)}</span>
+        ${p.desc ? `<span class="po-desc">${escHtml(p.desc)}</span>` : ''}
+      </div>`).join('');
+  }
+  box.style.display = 'block';
+}
+
+export function pumpPick(prefix, id) {
+  const p = state.pumps.find(x => x.id === id);
+  if (p) pickPump(prefix, p);
+}
+
+export function pumpKey(e, prefix) {
+  const box = $(prefix + '_pumpBox');
+  if (!box || box.style.display === 'none') return;
+  const opts = box.querySelectorAll('.pump-opt');
+  if (e.key === 'Escape') { hideBox(prefix); return; }
+  if (!opts.length) return;
+
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    const n = opts.length;
+    let i = activeIdx[prefix] ?? -1;
+    i = e.key === 'ArrowDown' ? (i + 1) % n : (i - 1 + n) % n;
+    activeIdx[prefix] = i;
+    opts.forEach((o, k) => o.classList.toggle('active', k === i));
+    opts[i].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const i = activeIdx[prefix] >= 0 ? activeIdx[prefix] : 0;
+    if (box._items?.[i]) pickPump(prefix, box._items[i]);
+  }
+}
+
+// عند مغادرة الحقل: إن كان الرقم مطابقاً تماماً لمضخة واحدة اخترها تلقائياً
+export function pumpBlur(prefix) {
+  setTimeout(() => {
+    hideBox(prefix);
+    const inp = $(prefix + '_pumpSearch');
+    if (!inp || pickers[prefix] || !inp.value.trim()) return;
+    const nq = norm(inp.value);
+    const exact = state.pumps.filter(p => norm(p.num) === nq);
+    if (exact.length === 1) pickPump(prefix, exact[0]);
+  }, 120);
+}
+
+export function getPumpPick(prefix) { return pickers[prefix] || null; }
+
+export function resetPumpPicker(prefix) {
+  clearPicked(prefix);
+  const inp = $(prefix + '_pumpSearch');
+  if (inp) inp.value = '';
+  hideBox(prefix);
+}
+
+// لنافذة التعديل: عرض مضخة البلاغ الحالية
+export function setPumpPickFromReport(prefix, r) {
+  const p = state.pumps.find(x => x.id === r.pumpId);
+  if (p) { pickPump(prefix, p); return; }
+  setPicked(prefix, { id: r.pumpId || '', num: r.pumpNum || '', city: r.city || '', label: r.pumpNum || '' });
 }
 
 // ─── إضافة مضخة جديدة ───

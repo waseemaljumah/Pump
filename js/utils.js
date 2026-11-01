@@ -105,8 +105,8 @@ export function renderItems(containerId, arr, delFn, editFn, checkFn, rejectFn) 
 }
 
 // ─── inline edit helpers ───
-function escHtml(str) {
-  return String(str)
+export function escHtml(str) {
+  return String(str ?? '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -155,7 +155,7 @@ window._startRejectWork = function(containerId, i, rejectFn) {
   
   textEl.innerHTML = `
     <div style="margin-top:8px;">
-      <label style="display:block;margin-bottom:5px;font-weight:600;color:#e65100;">سبب رفض العمل:</label>
+      <label style="display:block;margin-bottom:5px;font-weight:600;color:var(--warn-strong);">سبب رفض العمل:</label>
       <textarea class="edit-inline-input" id="rej_${containerId}_${i}" placeholder="اكتب سبب رفض هذا العمل..." rows="3"></textarea>
       <div class="edit-inline-btns">
         <button class="btn-reject-confirm" onclick="window._saveRejectWork('${containerId}',${i},'${rejectFn}')">❌ تأكيد الرفض</button>

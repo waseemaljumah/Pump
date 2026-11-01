@@ -2,7 +2,7 @@
 // export.js — تصدير Excel
 // ═══════════════════════════════════════
 
-import { state } from './state.js';
+import { state, isAdmin } from './state.js';
 import { getStatus } from './utils.js';
 
 // ─── فلترة بيانات التصدير ───
@@ -13,6 +13,7 @@ function getExportData() {
   const st   = document.getElementById('ex_st')?.value   || '';
 
   return state.reports.filter(r => {
+    if (!isAdmin() && (r.archived || r.hidden)) return false; // الزائر: لا مؤرشف ولا مخفي
     if (city && r.city !== city)          return false;
     if (from && r.date < from)            return false;
     if (to   && r.date > to)              return false;

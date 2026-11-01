@@ -11,14 +11,18 @@
   <div class="card-title"><div class="card-title-left">📌 بيانات المضخة</div></div>
   <div class="fg">
     <div class="f">
-      <label>البلدية <span class="req">*</span></label>
-      <select id="f_city" data-city-select onchange="APP.loadPumpsForCity('f_city','f_pump')">
-        <option value="">اختر البلدية</option>
-      </select>
+      <label>رقم المضخة <span class="req">*</span></label>
+      <div class="pump-picker">
+        <input type="text" id="f_pumpSearch" placeholder="اكتب رقم المضخة للبحث..." autocomplete="off"
+               oninput="APP.pumpSearch('f')" onfocus="this.select();APP.pumpSearch('f')"
+               onkeydown="APP.pumpKey(event,'f')" onblur="APP.pumpBlur('f')">
+        <input type="hidden" id="f_pumpId">
+        <div class="pump-suggest" id="f_pumpBox" onmousedown="event.preventDefault()"></div>
+      </div>
     </div>
     <div class="f">
-      <label>رقم المضخة <span class="req">*</span></label>
-      <select id="f_pump"><option value="">اختر البلدية أولاً</option></select>
+      <label>البلدية (تظهر تلقائياً)</label>
+      <input type="text" id="f_city" readonly placeholder="تُحدَّد بعد اختيار المضخة">
     </div>
     <div class="f">
       <label>تاريخ البلاغ <span class="req">*</span></label>

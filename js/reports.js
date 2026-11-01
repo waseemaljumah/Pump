@@ -2,10 +2,10 @@
 // reports.js — البلاغات (حفظ / تعديل / حذف)
 // ═══════════════════════════════════════
 
-import { Col, Doc, Add, Update, Delete, Listen, Q, OBy } from './firebase.js';
+import { Col, Doc, Add, Update, Delete, Listen, Q, OBy, Where, Batch } from './firebase.js';
 import { state } from './state.js';
 import { toast, getStatus, nowStamp, todayISO, setCI, getCI, renderItems } from './utils.js';
-import { loadPumpsForCity } from './pumps.js';
+import { getPumpPick, resetPumpPicker, setPumpPickFromReport } from './pumps.js';
 
 // مؤقتات النموذج
 let formFaults = [];
@@ -15,11 +15,49 @@ let editFaults = [];
 let editWorks  = [];
 
 // ─── بدء الاستماع للبلاغات ───
-export function initReports(onUpdate) {
-  Listen(Q(Col('reports'), OBy('createdAt', 'desc')), snap => {
-    state.reports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+// admin = true  → كل البلاغات (بما فيها المخفية)
+// admin = false → البلاغات غير المخفية فقط (تفرضها قواعد Firestore أيضاً)
+export function initReports(onUpdate, admin = false) {
+  const ref = admin
+    ? Q(Col('reports'), OBy('createdAt', 'desc'))
+    : Q(Col('reports'), Where('hidden', '==', false));
+
+  return Listen(ref, snap => {
+    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (!admin) list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    state.reports = list;
+    if (admin) migrateHiddenField(snap.docs);
+    if (typeof onUpdate === 'function') onUpdate();
+  }, err => {
+    console.warn('reports listener:', err);
+    state.reports = [];
     if (typeof onUpdate === 'function') onUpdate();
   });
+}
+
+// البلاغات القديمة بدون حقل hidden تُعتبر ظاهرة — نضيف الحقل لها مرة واحدة
+let migrated = false;
+async function migrateHiddenField(docs) {
+  if (migrated) return;
+  migrated = true;
+  const missing = docs.filter(d => d.data().hidden === undefined);
+  try {
+    for (let i = 0; i < missing.length; i += 400) {
+      const b = Batch();
+      missing.slice(i, i + 400).forEach(d => b.update(d.ref, { hidden: false }));
+      await b.commit();
+    }
+  } catch (e) { migrated = false; console.warn('hidden migration:', e); }
+}
+
+// إخفاء / إظهار بلاغ عن الزوار
+export async function toggleHidden(id) {
+  const r = state.reports.find(x => x.id === id);
+  if (!r) return;
+  try {
+    await Update(Doc('reports', id), { hidden: !r.hidden });
+    toast(r.hidden ? '👁️ أصبح البلاغ ظاهراً للزوار' : '🙈 تم إخفاء البلاغ عن الزوار', 'ok');
+  } catch (e) { console.error(e); toast('تعذّر التنفيذ — صلاحيات الأدمن مطلوبة', 'err'); }
 }
 
 // ══════════════════════════════════════
@@ -29,6 +67,7 @@ export function initReports(onUpdate) {
 export function initNewForm() {
   formFaults = [];
   formWorks  = [];
+  resetPumpPicker('f');
   document.getElementById('f_date').value = todayISO();
   renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault', 'window.APP.checkFormFault');
   renderItems('worksList',  formWorks,  'window.APP.delFormWork',  'window.APP.editFormWork',  'window.APP.checkFormWork', 'window.APP.rejectFormWork');
@@ -91,18 +130,16 @@ export function rejectFormWork(i, reason) {
 }
 
 export async function saveReport() {
-  const city    = document.getElementById('f_city')?.value;
-  const pumpSel = document.getElementById('f_pump');
-  const pumpId  = pumpSel?.value;
-  const pumpNum = pumpSel?.options[pumpSel.selectedIndex]?.text || '';
-  const date    = document.getElementById('f_date')?.value;
+  const pick = getPumpPick('f');
+  const date = document.getElementById('f_date')?.value;
 
-  if (!city || !pumpId || !date) { toast('اختر البلدية والمضخة والتاريخ', 'warn'); return; }
+  if (!pick?.id) { toast('اكتب رقم المضخة واختر من الاقتراحات', 'warn'); return; }
+  if (!date)     { toast('حدد تاريخ البلاغ', 'warn'); return; }
   if (!formFaults.length)        { toast('أضف عطل واحد على الأقل', 'warn'); return; }
 
   await Add(Col('reports'), {
     num:       document.getElementById('f_num')?.value.trim() || '',
-    city, pumpId, pumpNum, date,
+    city: pick.city, pumpId: pick.id, pumpNum: pick.num, date,
     faults:    formFaults,
     orderDate: document.getElementById('f_orderDate')?.value || '',
     works:     formWorks,
@@ -110,6 +147,7 @@ export async function saveReport() {
     registered: getCI('ci_reg'),
     approved:   getCI('ci_app'),
     worked:     getCI('ci_worked'),
+    hidden:     false,
     createdAt:  Date.now()
   });
 
@@ -123,10 +161,7 @@ export function clearNewForm() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  const fc = document.getElementById('f_city');
-  if (fc) fc.value = '';
-  const fp = document.getElementById('f_pump');
-  if (fp) fp.innerHTML = '<option value="">اختر البلدية أولاً</option>';
+  resetPumpPicker('f');
   document.getElementById('f_date').value = todayISO();
   setCI('ci_reg','cb_reg', false);
   setCI('ci_app','cb_app', false);
@@ -154,12 +189,8 @@ export async function openEdit(id) {
   document.getElementById('e_orderDate').value = r.orderDate || '';
   document.getElementById('e_notes').value     = r.notes     || '';
 
-  // بلدية + مضخة
-  const eCityEl = document.getElementById('e_city');
-  if (eCityEl) eCityEl.value = r.city;
-  await loadPumpsForCity('e_city', 'e_pump');
-  const ePumpEl = document.getElementById('e_pump');
-  if (ePumpEl) ePumpEl.value = r.pumpId || '';
+  // مضخة + بلدية (تلقائية)
+  setPumpPickFromReport('e', r);
 
   setCI('e_ci_reg','e_cb_reg', r.registered);
   setCI('e_ci_app','e_cb_app', r.approved);
@@ -239,14 +270,14 @@ export function rejectEditWork(i, reason) {
 
 export async function saveEdit() {
   if (!editId) return;
-  const pumpSel = document.getElementById('e_pump');
-  const pumpId  = pumpSel?.value;
-  const pumpNum = pumpSel?.options[pumpSel.selectedIndex]?.text || '';
+  const pick = getPumpPick('e');
+  if (!pick?.id) { toast('اكتب رقم المضخة واختر من الاقتراحات', 'warn'); return; }
 
   await Update(Doc('reports', editId), {
     num:        document.getElementById('e_num').value.trim(),
-    city:       document.getElementById('e_city').value,
-    pumpId, pumpNum,
+    city:       pick.city,
+    pumpId:     pick.id,
+    pumpNum:    pick.num,
     date:       document.getElementById('e_date').value,
     faults:     editFaults,
     orderDate:  document.getElementById('e_orderDate').value,

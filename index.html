@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>نظام متابعة أعطال المضخات</title>
+<script>try{if(localStorage.getItem('pump-theme')==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}</script>
 <link rel="stylesheet" href="css/style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -18,10 +19,20 @@
       <p id="topDate">—</p>
     </div>
   </div>
-  <div class="top-chips">
+  <div class="top-end">
+  <div class="top-chips" id="chips">
     <div class="chip chip-total"   onclick="APP.navTo('dashboard')"><span id="tTotal">0</span> إجمالي</div>
     <div class="chip chip-pending" onclick="APP.goFilter('')"><span id="tPending">0</span> قيد الإنجاز</div>
     <div class="chip chip-done"    onclick="APP.goFilter('done')"><span id="tDone">0</span> مكتملة</div>
+  </div>
+  <div class="top-actions">
+    <button class="top-btn" id="themeBtn" onclick="APP.toggleTheme()">🌙 ليلي</button>
+    <button class="top-btn" id="loginBtn" style="display:none" onclick="APP.openLogin()">🔐 دخول الإدارة</button>
+    <div class="user-box" id="userBox" style="display:none">
+      <span class="user-email" id="userEmail"></span>
+      <button class="top-btn" onclick="APP.doLogout()">خروج</button>
+    </div>
+  </div>
   </div>
 </div>
 
@@ -29,18 +40,25 @@
 <div class="layout">
 
   <!-- SIDEBAR -->
-  <div class="sidebar">
-    <div class="nav-group">القائمة</div>
-    <div class="nav-item active" id="nav-dashboard" onclick="APP.navTo('dashboard')">📊 لوحة التحكم</div>
-    <div class="nav-item"        id="nav-new"       onclick="APP.navTo('new')">➕ بلاغ جديد</div>
-    <div class="nav-item"        id="nav-list"      onclick="APP.navTo('list')">📋 قائمة البلاغات</div>
-    <div class="nav-item"        id="nav-archived"  onclick="APP.navTo('archived')">📦 الأرشيف</div>
-    <div class="nav-sep"></div>
-    <div class="nav-group">الإعدادات</div>
-    <div class="nav-item"        id="nav-pumps"     onclick="APP.navTo('pumps')">🔧 إدارة المضخات</div>
-    <div class="nav-sep"></div>
-    <div class="nav-group">التقارير</div>
-    <div class="nav-item"        id="nav-export"    onclick="APP.navTo('export')">📥 تصدير Excel</div>
+  <div class="sidebar" id="sidebar">
+    <div id="sec-main">
+      <div class="nav-group">القائمة</div>
+      <div class="nav-item active" id="nav-dashboard" onclick="APP.navTo('dashboard')">📊 لوحة التحكم</div>
+      <div class="nav-item"        id="nav-new"       onclick="APP.navTo('new')">➕ بلاغ جديد</div>
+      <div class="nav-item"        id="nav-list"      onclick="APP.navTo('list')">📋 قائمة البلاغات</div>
+      <div class="nav-item"        id="nav-archived"  onclick="APP.navTo('archived')">📦 الأرشيف</div>
+    </div>
+    <div id="sec-settings">
+      <div class="nav-sep"></div>
+      <div class="nav-group">الإعدادات</div>
+      <div class="nav-item"        id="nav-pumps"     onclick="APP.navTo('pumps')">🔧 إدارة المضخات</div>
+      <div class="nav-item"        id="nav-settings"  onclick="APP.navTo('settings')">👁️ إعدادات الظهور</div>
+    </div>
+    <div id="sec-reports">
+      <div class="nav-sep"></div>
+      <div class="nav-group">التقارير</div>
+      <div class="nav-item"        id="nav-export"    onclick="APP.navTo('export')">📥 تصدير Excel</div>
+    </div>
   </div>
 
   <!-- MAIN -->
@@ -63,12 +81,16 @@
     <div class="fg">
       <div class="f"><label>رقم البلاغ</label><input type="text" id="e_num"></div>
       <div class="f">
-        <label>البلدية</label>
-        <select id="e_city" data-city-select onchange="APP.loadPumpsForCity('e_city','e_pump')">
-          <option value="">اختر البلدية</option>
-        </select>
+        <label>رقم المضخة</label>
+        <div class="pump-picker">
+          <input type="text" id="e_pumpSearch" placeholder="اكتب رقم المضخة..." autocomplete="off"
+                 oninput="APP.pumpSearch('e')" onfocus="this.select();APP.pumpSearch('e')"
+                 onkeydown="APP.pumpKey(event,'e')" onblur="APP.pumpBlur('e')">
+          <input type="hidden" id="e_pumpId">
+          <div class="pump-suggest" id="e_pumpBox" onmousedown="event.preventDefault()"></div>
+        </div>
       </div>
-      <div class="f"><label>رقم المضخة</label><select id="e_pump"><option value="">—</option></select></div>
+      <div class="f"><label>البلدية (تلقائية)</label><input type="text" id="e_city" readonly></div>
       <div class="f"><label>تاريخ البلاغ</label><input type="date" id="e_date"></div>
     </div>
 
@@ -106,6 +128,29 @@
     <div class="btn-row">
       <button class="btn btn-primary" onclick="APP.saveEdit()">💾 حفظ التعديلات</button>
       <button class="btn btn-gray"    onclick="APP.closeEdit()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LOGIN MODAL ══ -->
+<div class="overlay" id="loginOverlay">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <span>🔐 دخول الإدارة</span>
+      <span class="modal-close" onclick="APP.closeLogin()">✕</span>
+    </div>
+    <div class="fg" style="grid-template-columns:1fr">
+      <div class="f"><label>البريد الإلكتروني</label>
+        <input type="email" id="l_email" class="ltr" autocomplete="username"
+               onkeydown="if(event.key==='Enter')document.getElementById('l_pass').focus()"></div>
+      <div class="f"><label>كلمة المرور</label>
+        <input type="password" id="l_pass" class="ltr" autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')APP.doLogin()"></div>
+    </div>
+    <div class="login-err" id="l_err"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="l_btn" onclick="APP.doLogin()">دخول</button>
+      <button class="btn btn-gray" onclick="APP.closeLogin()">إلغاء</button>
     </div>
   </div>
 </div>

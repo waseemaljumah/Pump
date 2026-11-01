@@ -2,8 +2,15 @@
 // ui.js — رسم الواجهة (لوحة التحكم، الجداول، الإحصائيات)
 // ═══════════════════════════════════════
 
-import { state } from './state.js';
-import { getStatus, matchFilter } from './utils.js';
+import { state, isAdmin, canView } from './state.js';
+import { getStatus, matchFilter, escHtml as esc } from './utils.js';
+
+// أزرار الإجراءات (للأدمن فقط)
+function hideBtn(r) {
+  return `<button class="btn btn-gray btn-sm" onclick="window.APP.toggleHidden('${r.id}')"
+    title="${r.hidden ? 'إظهار للزوار' : 'إخفاء عن الزوار'}">${r.hidden ? '👁️ إظهار' : '🙈 إخفاء'}</button>`;
+}
+const hiddenBadge = r => r.hidden ? ' <span class="badge b-gray">🙈 مخفي</span>' : '';
 
 // ══════════════════════════════════════
 // الإحصائيات العلوية
@@ -40,6 +47,11 @@ export function renderDashboard() {
   const el = document.getElementById('dashTable');
   if (!el) return;
 
+  // الزائر: لا روابط للقائمة إن كانت مخفية
+  document.querySelector('.stat-grid')?.classList.toggle('no-link', !canView('list'));
+  const allBtn = document.getElementById('dashAllBtn');
+  if (allBtn) allBtn.style.display = canView('list') ? '' : 'none';
+
   if (!urgent.length) {
     el.innerHTML = `<div class="empty"><div class="empty-icon">🎉</div><p>جميع البلاغات مكتملة!</p></div>`;
     return;
@@ -50,7 +62,7 @@ export function renderDashboard() {
       <table>
         <thead><tr>
           <th>رقم البلاغ</th><th>المضخة</th><th>البلدية</th><th>التاريخ</th>
-          <th>أمر العمل</th><th>تم العمل</th><th>التسجيل</th><th>الاعتماد</th><th>الحالة</th><th>إجراء</th>
+          <th>أمر العمل</th><th>تم العمل</th><th>التسجيل</th><th>الاعتماد</th><th>الحالة</th><th class="admin-only">إجراء</th>
         </tr></thead>
         <tbody>
           ${urgent.map(r => reportRow(r)).join('')}
@@ -67,6 +79,7 @@ export function renderList() {
   const city    = document.getElementById('fl_city')?.value || '';
   const st      = document.getElementById('fl_st')?.value   || '';
   const sort    = document.getElementById('fl_sort')?.value || 'desc';
+  const vis     = isAdmin() ? (document.getElementById('fl_vis')?.value || '') : '';
 
   let data = state.reports.filter(r => {
     // إخفاء البلاغات المؤرشفة من القائمة الرئيسية
@@ -74,9 +87,11 @@ export function renderList() {
     
     if (q && !(r.num||'').toLowerCase().includes(q) &&
              !(r.pumpNum||'').toLowerCase().includes(q) &&
-             !r.city.includes(q)) return false;
+             !(r.city||'').includes(q)) return false;
     if (city && r.city !== city) return false;
     if (!matchFilter(r, st))     return false;
+    if (vis === 'hidden'  && !r.hidden) return false;
+    if (vis === 'visible' &&  r.hidden) return false;
     
     return true;
   });
@@ -103,22 +118,23 @@ export function renderList() {
   tbody.innerHTML = data.map((r, i) => {
     const status = getStatus(r);
     
-    return `<tr>
+    return `<tr class="${r.hidden ? 'row-hidden' : ''}">
       <td>${i + 1}</td>
-      <td><strong>${r.num || '—'}</strong></td>
-      <td><span class="pump-tag">${r.pumpNum || '—'}</span></td>
-      <td>${r.city}</td>
-      <td>${r.date}</td>
-      <td><span class="badge ${r.orderDate ? 'b-blue' : 'b-red'}">${r.orderDate || '—'}</span></td>
+      <td><strong>${esc(r.num) || '—'}</strong>${hiddenBadge(r)}</td>
+      <td><span class="pump-tag">${esc(r.pumpNum) || '—'}</span></td>
+      <td>${esc(r.city)}</td>
+      <td>${esc(r.date)}</td>
+      <td><span class="badge ${r.orderDate ? 'b-blue' : 'b-red'}">${esc(r.orderDate) || '—'}</span></td>
       <td><span class="badge ${r.worked ? 'b-purple': 'b-red'}">${r.worked ? '✓' : '✗'}</span></td>
       <td><span class="badge ${r.registered? 'b-green' : 'b-red'}">${r.registered? '✓' : '✗'}</span></td>
       <td><span class="badge ${r.approved  ? 'b-green' : 'b-red'}">${r.approved  ? '✓' : '✗'}</span></td>
       <td><span class="badge ${status.cls}">${status.label}</span></td>
-      <td style="display:flex;gap:5px;flex-wrap:wrap;">
+      <td class="admin-only"><div class="act-cell">
         <button class="btn btn-outline btn-sm" onclick="window.APP.openEdit('${r.id}')">✏️</button>
+        ${hideBtn(r)}
         <button class="btn btn-primary btn-sm" onclick="window.APP.archiveReport('${r.id}')" title="أرشفة">📦</button>
         <button class="btn btn-danger  btn-sm" onclick="window.APP.deleteReport('${r.id}')">🗑️</button>
-      </td>
+      </div></td>
     </tr>`;
   }).join('');
 }
@@ -137,7 +153,7 @@ export function renderArchived() {
     
     if (q && !(r.num||'').toLowerCase().includes(q) &&
              !(r.pumpNum||'').toLowerCase().includes(q) &&
-             !r.city.includes(q)) return false;
+             !(r.city||'').includes(q)) return false;
     if (city && r.city !== city) return false;
     
     return true;
@@ -166,7 +182,7 @@ export function renderArchived() {
     const status = getStatus(r);
     const archivedDate = r.archivedAt ? new Date(r.archivedAt).toLocaleDateString('ar-SA') : '—';
     
-    return `<tr style="background:#f9f9f9;">
+    return `<tr class="row-archived">
       <td>${i + 1}</td>
       <td><strong>${r.num || '—'}</strong></td>
       <td><span class="pump-tag">${r.pumpNum || '—'}</span></td>
@@ -178,32 +194,33 @@ export function renderArchived() {
       <td><span class="badge ${r.registered? 'b-green' : 'b-red'}">${r.registered? '✓' : '✗'}</span></td>
       <td><span class="badge ${r.approved  ? 'b-green' : 'b-red'}">${r.approved  ? '✓' : '✗'}</span></td>
       <td><span class="badge ${status.cls}">${status.label}</span></td>
-      <td style="display:flex;gap:5px;flex-wrap:wrap;">
+      <td><div class="act-cell">
         <button class="btn btn-outline btn-sm" onclick="window.APP.openEdit('${r.id}')">✏️</button>
         <button class="btn btn-success btn-sm" onclick="window.APP.unarchiveReport('${r.id}')" title="إلغاء الأرشفة">📤 استعادة</button>
         <button class="btn btn-danger  btn-sm" onclick="window.APP.deleteReport('${r.id}')">🗑️</button>
-      </td>
+      </div></td>
     </tr>`;
   }).join('');
 }
 
-// ─── صف بلاغ مشترك ───
+// ─── صف بلاغ مشترك (لوحة التحكم) ───
 function reportRow(r) {
   const st = getStatus(r);
-  return `<tr>
-    <td><strong>${r.num || '—'}</strong></td>
-    <td><span class="pump-tag">${r.pumpNum || '—'}</span></td>
-    <td>${r.city}</td>
-    <td>${r.date}</td>
-    <td><span class="badge ${r.orderDate  ? 'b-blue'   : 'b-red'}">${r.orderDate  || '—'}</span></td>
+  return `<tr class="${r.hidden ? 'row-hidden' : ''}">
+    <td><strong>${esc(r.num) || '—'}</strong>${hiddenBadge(r)}</td>
+    <td><span class="pump-tag">${esc(r.pumpNum) || '—'}</span></td>
+    <td>${esc(r.city)}</td>
+    <td>${esc(r.date)}</td>
+    <td><span class="badge ${r.orderDate  ? 'b-blue'   : 'b-red'}">${esc(r.orderDate) || '—'}</span></td>
     <td><span class="badge ${r.worked     ? 'b-purple' : 'b-red'}">${r.worked     ? '✓' : '✗'}</span></td>
     <td><span class="badge ${r.registered ? 'b-green'  : 'b-red'}">${r.registered ? '✓' : '✗'}</span></td>
     <td><span class="badge ${r.approved   ? 'b-green'  : 'b-red'}">${r.approved   ? '✓' : '✗'}</span></td>
     <td><span class="badge ${st.cls}">${st.label}</span></td>
-    <td style="display:flex;gap:5px;flex-wrap:wrap;">
+    <td class="admin-only"><div class="act-cell">
       <button class="btn btn-outline btn-sm" onclick="window.APP.openEdit('${r.id}')">تعديل</button>
+      ${hideBtn(r)}
       <button class="btn btn-primary btn-sm" onclick="window.APP.archiveReport('${r.id}')" title="أرشفة">📦</button>
-    </td>
+    </div></td>
   </tr>`;
 }
 
