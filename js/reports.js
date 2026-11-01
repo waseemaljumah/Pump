@@ -4,7 +4,7 @@
 
 import { Col, Doc, Add, Update, Delete, Listen, Q, OBy, Where, Batch } from './firebase.js';
 import { state } from './state.js';
-import { toast, getStatus, nowStamp, todayISO, setCI, getCI, renderItems } from './utils.js';
+import { toast, getStatus, nowStamp, todayISO, setCI, getCI, renderItems, renderItemsReadonly, escHtml } from './utils.js';
 import { getPumpPick, resetPumpPicker, setPumpPickFromReport } from './pumps.js';
 
 // مؤقتات النموذج
@@ -56,7 +56,7 @@ export async function toggleHidden(id) {
   if (!r) return;
   try {
     await Update(Doc('reports', id), { hidden: !r.hidden });
-    toast(r.hidden ? '👁️ أصبح البلاغ ظاهراً للزوار' : '🙈 تم إخفاء البلاغ عن الزوار', 'ok');
+    toast(r.hidden ? 'أصبح البلاغ ظاهراً للزوار' : 'تم إخفاء البلاغ عن الزوار', 'ok');
   } catch (e) { console.error(e); toast('تعذّر التنفيذ — صلاحيات الأدمن مطلوبة', 'err'); }
 }
 
@@ -211,6 +211,52 @@ export async function openEdit(id) {
   }
 
   document.getElementById('editOverlay').classList.add('open');
+}
+
+// ─── عرض تفاصيل بلاغ (للقراءة فقط — متاح للزائر والأدمن) ───
+export function viewReport(id) {
+  const r = state.reports.find(x => x.id === id);
+  if (!r) return;
+
+  document.getElementById('viewLabel').textContent = r.num ? 'بلاغ رقم ' + r.num : (r.pumpNum || '');
+
+  const steps   = ['البلاغ','أمر العمل','تم العمل','التسجيل','الاعتماد'];
+  const stepIdx = { 'no-order':0, worked:1, noreg:2, wait:3, done:4 }[getStatus(r).code] ?? 4;
+  const prog = steps.map((s,i) =>
+    `<div class="ps ${i < stepIdx ? 'done' : i === stepIdx ? 'cur' : ''}">${i < stepIdx ? '✓ ' : ''}${s}</div>`).join('');
+
+  const field = (label, val) =>
+    `<div class="f"><label>${label}</label><div class="vfield">${escHtml(val) || '—'}</div></div>`;
+  const chk = (on, label) =>
+    `<div class="ci ${on ? 'on' : ''}" style="cursor:default"><div class="cb">${on ? '✓' : ''}</div>${label}</div>`;
+
+  document.getElementById('viewBody').innerHTML = `
+    <div class="prog">${prog}</div>
+    <div class="fg">
+      ${field('رقم البلاغ', r.num)}
+      ${field('رقم المضخة', r.pumpNum)}
+      ${field('البلدية', r.city)}
+      ${field('تاريخ البلاغ', r.date)}
+      ${field('تاريخ أمر العمل', r.orderDate)}
+    </div>
+    <div class="sep"></div>
+    <div class="view-h">🔴 الأعطال</div>
+    <div class="fault-list">${renderItemsReadonly(r.faults)}</div>
+    <div class="view-h" style="margin-top:14px">🔧 الأعمال التي تمت</div>
+    <div class="fault-list">${renderItemsReadonly(r.works)}</div>
+    <div class="sep"></div>
+    <div class="fg"><div class="f full"><label>ملاحظات</label><div class="vfield" style="white-space:pre-wrap">${escHtml(r.notes) || '—'}</div></div></div>
+    <div class="check-row">
+      ${chk(r.worked, 'تم العمل عليها 🔧')}
+      ${chk(r.registered, 'تم تسجيل الأعمال بالنظام')}
+      ${chk(r.approved, 'تم اعتماد الأعمال من المشرف')}
+    </div>`;
+
+  document.getElementById('viewOverlay').classList.add('open');
+}
+
+export function closeView() {
+  document.getElementById('viewOverlay').classList.remove('open');
 }
 
 export function closeEdit() {

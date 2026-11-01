@@ -457,3 +457,13 @@ input[readonly] { background:var(--surface2); color:var(--text-mid); cursor:defa
   .main { padding:14px; }
   .modal-sm { width:96vw; }
 }
+
+/* عرض البلاغ للقراءة فقط */
+.vfield { background:var(--surface2); border:1.5px solid var(--border); border-radius:7px; padding:8px 11px; font-size:13.5px; min-height:36px; word-break:break-word; }
+.view-h { font-size:13px; font-weight:600; color:var(--text-mid); margin-bottom:8px; }
+
+/* زر العين */
+.btn-icon { padding:5px 8px; line-height:0; }
+.ico { width:16px; height:16px; vertical-align:middle; }
+.btn-icon.is-off { color:var(--text-dim); }
+.badge .ico { width:12px; height:12px; margin-left:3px; vertical-align:-2px; }

@@ -104,6 +104,23 @@ export function renderItems(containerId, arr, delFn, editFn, checkFn, rejectFn) 
   }).join('');
 }
 
+// ─── عرض للقراءة فقط (بدون أزرار تعديل) ───
+export function renderItemsReadonly(arr) {
+  if (!arr?.length) return '<div class="empty-items">لا يوجد عناصر</div>';
+  return arr.map(item => {
+    const checked = !!item.done, rejected = !!item.rejected;
+    return `
+    <div class="fault-item ${checked ? 'fault-item-done' : ''} ${rejected ? 'fault-item-rejected' : ''}">
+      <div class="item-check ${checked ? 'item-check-on' : rejected ? 'item-check-rejected' : ''}" style="cursor:default">${checked ? '✓' : rejected ? '✗' : ''}</div>
+      <div class="fault-item-body">
+        <div class="fault-item-text ${checked ? 'text-striked' : rejected ? 'text-rejected' : ''}">${escHtml(item.text)}</div>
+        <div class="fault-item-date">📅 ${escHtml(item.date || '')}</div>
+        ${rejected ? `<div class="fault-item-rejection"><strong>سبب الرفض:</strong> ${escHtml(item.rejectionReason || 'غير محدد')}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 // ─── inline edit helpers ───
 export function escHtml(str) {
   return String(str ?? '')

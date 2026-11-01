@@ -5,12 +5,17 @@
 import { state, isAdmin, canView } from './state.js';
 import { getStatus, matchFilter, escHtml as esc } from './utils.js';
 
-// أزرار الإجراءات (للأدمن فقط)
+// أيقونات العين (SVG بدل الإيموجي)
+const EYE = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.9 10.9 0 0 1 12 19C5 19 1 12 1 12a18.5 18.5 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.1 9.1 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+// زر الإخفاء/الإظهار (للأدمن فقط): العين تعكس حالة البلاغ الحالية
 function hideBtn(r) {
-  return `<button class="btn btn-gray btn-sm" onclick="window.APP.toggleHidden('${r.id}')"
-    title="${r.hidden ? 'إظهار للزوار' : 'إخفاء عن الزوار'}">${r.hidden ? '👁️ إظهار' : '🙈 إخفاء'}</button>`;
+  return `<button class="btn btn-outline btn-sm btn-icon ${r.hidden ? 'is-off' : ''}" onclick="window.APP.toggleHidden('${r.id}')"
+    title="${r.hidden ? 'مخفي عن الزوار — اضغط للإظهار' : 'ظاهر للزوار — اضغط للإخفاء'}">${r.hidden ? EYE_OFF : EYE}</button>`;
 }
-const hiddenBadge = r => r.hidden ? ' <span class="badge b-gray">🙈 مخفي</span>' : '';
+const viewBtn = r => `<button class="btn btn-outline btn-sm" onclick="window.APP.viewReport('${r.id}')">عرض</button>`;
+const hiddenBadge = r => r.hidden ? ` <span class="badge b-gray">${EYE_OFF} مخفي</span>` : '';
 
 // ══════════════════════════════════════
 // الإحصائيات العلوية
@@ -62,7 +67,7 @@ export function renderDashboard() {
       <table>
         <thead><tr>
           <th>رقم البلاغ</th><th>المضخة</th><th>البلدية</th><th>التاريخ</th>
-          <th>أمر العمل</th><th>تم العمل</th><th>التسجيل</th><th>الاعتماد</th><th>الحالة</th><th class="admin-only">إجراء</th>
+          <th>أمر العمل</th><th>تم العمل</th><th>التسجيل</th><th>الاعتماد</th><th>الحالة</th><th>تفاصيل</th><th class="admin-only">إجراء</th>
         </tr></thead>
         <tbody>
           ${urgent.map(r => reportRow(r)).join('')}
@@ -109,7 +114,7 @@ export function renderList() {
   if (!tbody) return;
 
   if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="11">
+    tbody.innerHTML = `<tr><td colspan="12">
       <div class="empty"><div class="empty-icon">📭</div><p>لا توجد نتائج</p></div>
     </td></tr>`;
     return;
@@ -129,6 +134,7 @@ export function renderList() {
       <td><span class="badge ${r.registered? 'b-green' : 'b-red'}">${r.registered? '✓' : '✗'}</span></td>
       <td><span class="badge ${r.approved  ? 'b-green' : 'b-red'}">${r.approved  ? '✓' : '✗'}</span></td>
       <td><span class="badge ${status.cls}">${status.label}</span></td>
+      <td>${viewBtn(r)}</td>
       <td class="admin-only"><div class="act-cell">
         <button class="btn btn-outline btn-sm" onclick="window.APP.openEdit('${r.id}')">✏️</button>
         ${hideBtn(r)}
@@ -216,6 +222,7 @@ function reportRow(r) {
     <td><span class="badge ${r.registered ? 'b-green'  : 'b-red'}">${r.registered ? '✓' : '✗'}</span></td>
     <td><span class="badge ${r.approved   ? 'b-green'  : 'b-red'}">${r.approved   ? '✓' : '✗'}</span></td>
     <td><span class="badge ${st.cls}">${st.label}</span></td>
+    <td>${viewBtn(r)}</td>
     <td class="admin-only"><div class="act-cell">
       <button class="btn btn-outline btn-sm" onclick="window.APP.openEdit('${r.id}')">تعديل</button>
       ${hideBtn(r)}

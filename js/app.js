@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════
 
 import { initPumps, renderPumps, addPump, deletePump, populateCitySelects, pumpSearch, pumpPick, pumpKey, pumpBlur } from './pumps.js';
-import { initReports, saveReport, clearNewForm, openEdit, closeEdit, saveEdit, deleteReport, addFaultToForm, delFormFault, editFormFault, checkFormFault, addWorkToForm, delFormWork, editFormWork, checkFormWork, rejectFormWork, addFaultToEdit, delEditFault, editEditFault, checkEditFault, addWorkToEdit, delEditWork, editEditWork, checkEditWork, rejectEditWork, initNewForm, archiveReport, unarchiveReport, toggleHidden } from './reports.js';
+import { initReports, saveReport, clearNewForm, openEdit, closeEdit, saveEdit, deleteReport, addFaultToForm, delFormFault, editFormFault, checkFormFault, addWorkToForm, delFormWork, editFormWork, checkFormWork, rejectFormWork, addFaultToEdit, delEditFault, editEditFault, checkEditFault, addWorkToEdit, delEditWork, editEditWork, checkEditWork, rejectEditWork, initNewForm, archiveReport, unarchiveReport, toggleHidden, viewReport, closeView } from './reports.js';
 import { updateStats, renderDashboard, renderList, renderArchived } from './ui.js';
 import { doExport, previewExport } from './export.js';
 import { initSettings, ensureDefaultSettings, setSetting, renderSettings } from './settings.js';
@@ -188,7 +188,7 @@ window.APP = {
   pumpSearch, pumpPick, pumpKey, pumpBlur,
   // reports
   saveReport, clearNewForm,
-  openEdit, closeEdit, saveEdit, deleteReport,
+  openEdit, closeEdit, saveEdit, deleteReport, viewReport, closeView,
   addFaultToForm, delFormFault, editFormFault, checkFormFault,
   addWorkToForm,  delFormWork,  editFormWork,  checkFormWork, rejectFormWork,
   addFaultToEdit, delEditFault, editEditFault, checkEditFault,

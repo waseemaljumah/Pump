@@ -52,7 +52,7 @@
       <div class="nav-sep"></div>
       <div class="nav-group">الإعدادات</div>
       <div class="nav-item"        id="nav-pumps"     onclick="APP.navTo('pumps')">🔧 إدارة المضخات</div>
-      <div class="nav-item"        id="nav-settings"  onclick="APP.navTo('settings')">👁️ إعدادات الظهور</div>
+      <div class="nav-item"        id="nav-settings"  onclick="APP.navTo('settings')">إعدادات الظهور</div>
     </div>
     <div id="sec-reports">
       <div class="nav-sep"></div>
@@ -128,6 +128,20 @@
     <div class="btn-row">
       <button class="btn btn-primary" onclick="APP.saveEdit()">💾 حفظ التعديلات</button>
       <button class="btn btn-gray"    onclick="APP.closeEdit()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ VIEW MODAL (قراءة فقط) ══ -->
+<div class="overlay" id="viewOverlay" onclick="if(event.target===this)APP.closeView()">
+  <div class="modal">
+    <div class="modal-head">
+      <span>👁️ تفاصيل البلاغ — <span id="viewLabel" style="color:var(--primary)"></span></span>
+      <span class="modal-close" onclick="APP.closeView()">✕</span>
+    </div>
+    <div id="viewBody"></div>
+    <div class="btn-row">
+      <button class="btn btn-gray" onclick="APP.closeView()">إغلاق</button>
     </div>
   </div>
 </div>
