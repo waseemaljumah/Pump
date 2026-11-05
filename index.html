@@ -90,7 +90,7 @@
           <div class="pump-suggest" id="e_pumpBox" onmousedown="event.preventDefault()"></div>
         </div>
       </div>
-      <div class="f"><label>البلدية (تلقائية)</label><input type="text" id="e_city" readonly></div>
+      <div class="f"><label>البلدية (يمكن تعديلها)</label><input type="text" id="e_city" list="cityList" autocomplete="off"></div>
       <div class="f"><label>تاريخ البلاغ</label><input type="date" id="e_date"></div>
     </div>
 
@@ -131,6 +131,8 @@
     </div>
   </div>
 </div>
+
+<datalist id="cityList"></datalist>
 
 <!-- ══ VIEW MODAL (قراءة فقط) ══ -->
 <div class="overlay" id="viewOverlay" onclick="if(event.target===this)APP.closeView()">

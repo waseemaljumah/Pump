@@ -50,6 +50,16 @@ async function migrateHiddenField(docs) {
   } catch (e) { migrated = false; console.warn('hidden migration:', e); }
 }
 
+// إن عُدّلت البلدية عن المحفوظة للمضخة: نسأل هل نحدّث بيانات المضخة أيضاً
+async function confirmPumpCity(pick) {
+  const p = state.pumps.find(x => x.id === pick.id);
+  if (p && p.city !== pick.city &&
+      confirm(`البلدية المحفوظة للمضخة ${p.num} هي «${p.city}».\nهل تريد تغييرها إلى «${pick.city}» في بيانات المضخة أيضاً؟\n\nموافق = تحديث المضخة والبلاغ\nإلغاء = تحديث هذا البلاغ فقط`)) {
+    try { await Update(Doc('pumps', p.id), { city: pick.city }); }
+    catch (e) { console.error(e); toast('تعذّر تحديث بلدية المضخة', 'err'); }
+  }
+}
+
 // إخفاء / إظهار بلاغ عن الزوار
 export async function toggleHidden(id) {
   const r = state.reports.find(x => x.id === id);
@@ -133,8 +143,10 @@ export async function saveReport() {
   const pick = getPumpPick('f');
   const date = document.getElementById('f_date')?.value;
 
-  if (!pick?.id) { toast('اكتب رقم المضخة واختر من الاقتراحات', 'warn'); return; }
-  if (!date)     { toast('حدد تاريخ البلاغ', 'warn'); return; }
+  if (!pick?.id)  { toast('اكتب رقم المضخة واختر من الاقتراحات', 'warn'); return; }
+  if (!pick.city) { toast('اكتب اسم البلدية', 'warn'); return; }
+  if (!date)      { toast('حدد تاريخ البلاغ', 'warn'); return; }
+  await confirmPumpCity(pick);
   if (!formFaults.length)        { toast('أضف عطل واحد على الأقل', 'warn'); return; }
 
   await Add(Col('reports'), {
@@ -317,7 +329,9 @@ export function rejectEditWork(i, reason) {
 export async function saveEdit() {
   if (!editId) return;
   const pick = getPumpPick('e');
-  if (!pick?.id) { toast('اكتب رقم المضخة واختر من الاقتراحات', 'warn'); return; }
+  if (!pick?.id)  { toast('اكتب رقم المضخة واختر من الاقتراحات', 'warn'); return; }
+  if (!pick.city) { toast('اكتب اسم البلدية', 'warn'); return; }
+  await confirmPumpCity(pick);
 
   await Update(Doc('reports', editId), {
     num:        document.getElementById('e_num').value.trim(),

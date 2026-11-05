@@ -24,6 +24,10 @@ export function populateCitySelects() {
   const extra  = [...new Set(state.pumps.map(p => p.city))];
   const merged = [...new Set([...CITIES, ...extra])];
 
+  // اقتراحات البلديات لحقل البلدية القابل للتعديل
+  const dl = document.getElementById('cityList');
+  if (dl) dl.innerHTML = merged.map(c => `<option value="${escHtml(c)}">`).join('');
+
   document.querySelectorAll('[data-city-select]').forEach(sel => {
     const cur  = sel.value;
     const isFilter = sel.dataset.citySelect === 'filter';
@@ -166,7 +170,12 @@ export function pumpBlur(prefix) {
   }, 120);
 }
 
-export function getPumpPick(prefix) { return pickers[prefix] || null; }
+// البلدية قابلة للتعديل: نقرأ القيمة الحالية من الحقل
+export function getPumpPick(prefix) {
+  const sel = pickers[prefix];
+  if (!sel) return null;
+  return { ...sel, city: ($(prefix + '_city')?.value || '').trim() };
+}
 
 export function resetPumpPicker(prefix) {
   clearPicked(prefix);
