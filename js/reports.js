@@ -5,7 +5,7 @@
 import { Col, Doc, Add, Update, Delete, Listen, Q, OBy, Where, Batch } from './firebase.js';
 import { state } from './state.js';
 import { toast, getStatus, nowStamp, todayISO, setCI, getCI, renderItems, renderItemsReadonly, escHtml } from './utils.js';
-import { getPumpPick, resetPumpPicker, setPumpPickFromReport } from './pumps.js';
+import { getPumpPick, resetPumpPicker, setPumpPickFromReport, norm, pumpLabel } from './pumps.js';
 
 // مؤقتات النموذج
 let formFaults = [];
@@ -50,14 +50,55 @@ async function migrateHiddenField(docs) {
   } catch (e) { migrated = false; console.warn('hidden migration:', e); }
 }
 
-// إن عُدّلت البلدية عن المحفوظة للمضخة: نسأل هل نحدّث بيانات المضخة أيضاً
-async function confirmPumpCity(pick) {
-  const p = state.pumps.find(x => x.id === pick.id);
-  if (p && p.city !== pick.city &&
-      confirm(`البلدية المحفوظة للمضخة ${p.num} هي «${p.city}».\nهل تريد تغييرها إلى «${pick.city}» في بيانات المضخة أيضاً؟\n\nموافق = تحديث المضخة والبلاغ\nإلغاء = تحديث هذا البلاغ فقط`)) {
-    try { await Update(Doc('pumps', p.id), { city: pick.city }); }
-    catch (e) { console.error(e); toast('تعذّر تحديث بلدية المضخة', 'err'); }
+// ── اكتشاف المضخة عند الحفظ ──
+// • مضخة مختارة وبلديتها عُدّلت        → نسأل: تحديث المضخة أيضاً أم هذا البلاغ فقط
+// • رقم مكتوب بدون اختيار:
+//     - موجود بنفس البلدية             → نستخدمه (لا تكرار)
+//     - موجود ببلدية أخرى (مضخة واحدة) → نسأل: تعديل بلدية المضخة أم إضافة مضخة جديدة
+//     - غير موجود                      → تُضاف مضخة جديدة تلقائياً
+async function resolvePump(prefix) {
+  const text = (document.getElementById(prefix + '_pumpSearch')?.value || '').trim();
+  const city = (document.getElementById(prefix + '_city')?.value || '').trim();
+  const pick = getPumpPick(prefix);
+
+  if (pick?.id) {
+    const p = state.pumps.find(x => x.id === pick.id);
+    if (p && norm(p.city) !== norm(city) &&
+        confirm(`البلدية المحفوظة للمضخة ${p.num} هي «${p.city}».\nهل تريد تغييرها إلى «${city}» في بيانات المضخة أيضاً؟\n\nموافق = تحديث المضخة والبلاغ\nإلغاء = تحديث هذا البلاغ فقط`)) {
+      try { await Update(Doc('pumps', p.id), { city }); }
+      catch (e) { console.error(e); toast('تعذّر تحديث بلدية المضخة', 'err'); }
+    }
+    return { id: pick.id, num: pick.num, city };
   }
+
+  const same = state.pumps.filter(p => norm(p.num) === norm(text));
+  const inCity = same.find(p => norm(p.city) === norm(city));
+  if (inCity) return { id: inCity.id, num: pumpLabel(inCity), city: inCity.city };
+
+  if (same.length === 1) {
+    const p = same[0];
+    if (confirm(`المضخة ${p.num} مسجلة في بلدية «${p.city}».\nهل تريد تعديل بلديتها إلى «${city}»؟\n\nموافق = تعديل بلدية المضخة\nإلغاء = إضافة مضخة جديدة بنفس الرقم في «${city}»`)) {
+      try { await Update(Doc('pumps', p.id), { city }); }
+      catch (e) { console.error(e); toast('تعذّر تحديث بلدية المضخة', 'err'); return null; }
+      return { id: p.id, num: pumpLabel(p), city };
+    }
+  }
+
+  try {
+    const ref = await Add(Col('pumps'), { city, num: text, desc: '', createdAt: Date.now() });
+    toast('➕ تمت إضافة المضخة ' + text + ' تلقائياً', 'ok');
+    return { id: ref.id, num: text, city };
+  } catch (e) {
+    console.error(e);
+    toast('تعذّرت إضافة المضخة — صلاحيات الأدمن مطلوبة', 'err');
+    return null;
+  }
+}
+
+function pumpFieldsOk(prefix) {
+  if (!(document.getElementById(prefix + '_pumpSearch')?.value || '').trim()) { toast('اكتب رقم المضخة', 'warn'); return false; }
+  if (!(document.getElementById(prefix + '_city')?.value || '').trim())      { toast('اكتب اسم البلدية', 'warn'); return false; }
+  return true;
 }
 
 // إخفاء / إظهار بلاغ عن الزوار
@@ -140,14 +181,14 @@ export function rejectFormWork(i, reason) {
 }
 
 export async function saveReport() {
-  const pick = getPumpPick('f');
   const date = document.getElementById('f_date')?.value;
 
-  if (!pick?.id)  { toast('اكتب رقم المضخة واختر من الاقتراحات', 'warn'); return; }
-  if (!pick.city) { toast('اكتب اسم البلدية', 'warn'); return; }
-  if (!date)      { toast('حدد تاريخ البلاغ', 'warn'); return; }
-  await confirmPumpCity(pick);
-  if (!formFaults.length)        { toast('أضف عطل واحد على الأقل', 'warn'); return; }
+  if (!pumpFieldsOk('f'))  return;
+  if (!date)               { toast('حدد تاريخ البلاغ', 'warn'); return; }
+  if (!formFaults.length)  { toast('أضف عطل واحد على الأقل', 'warn'); return; }
+
+  const pick = await resolvePump('f');
+  if (!pick) return;
 
   await Add(Col('reports'), {
     num:       document.getElementById('f_num')?.value.trim() || '',
@@ -328,10 +369,9 @@ export function rejectEditWork(i, reason) {
 
 export async function saveEdit() {
   if (!editId) return;
-  const pick = getPumpPick('e');
-  if (!pick?.id)  { toast('اكتب رقم المضخة واختر من الاقتراحات', 'warn'); return; }
-  if (!pick.city) { toast('اكتب اسم البلدية', 'warn'); return; }
-  await confirmPumpCity(pick);
+  if (!pumpFieldsOk('e')) return;
+  const pick = await resolvePump('e');
+  if (!pick) return;
 
   await Update(Doc('reports', editId), {
     num:        document.getElementById('e_num').value.trim(),

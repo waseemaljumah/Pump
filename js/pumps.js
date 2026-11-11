@@ -49,14 +49,14 @@ const activeIdx = {}; // prefix → فهرس الاقتراح المحدد با�
 const $ = id => document.getElementById(id);
 
 // توحيد الأرقام العربية/الفارسية والحروف الصغيرة للبحث
-function norm(s) {
+export function norm(s) {
   return String(s ?? '')
     .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
     .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
     .toLowerCase().trim();
 }
 
-function pumpLabel(p) { return p.num + (p.desc ? ' — ' + p.desc : ''); }
+export function pumpLabel(p) { return p.num + (p.desc ? ' — ' + p.desc : ''); }
 
 function findMatches(q) {
   const nq = norm(q);
@@ -117,9 +117,9 @@ export function pumpSearch(prefix) {
   activeIdx[prefix] = -1;
 
   if (!state.pumps.length) {
-    box.innerHTML = '<div class="pump-empty">لا توجد مضخات مسجلة — أضفها من «إدارة المضخات»</div>';
+    box.innerHTML = '<div class="pump-empty">لا توجد مضخات مسجلة — اكتب الرقم والبلدية وستُضاف تلقائياً عند الحفظ</div>';
   } else if (!res.length) {
-    box.innerHTML = '<div class="pump-empty">لا توجد مضخة مطابقة</div>';
+    box.innerHTML = '<div class="pump-empty">مضخة جديدة — اكتب اسم البلدية وستُضاف تلقائياً عند الحفظ</div>';
   } else {
     box.innerHTML = res.map(p => `
       <div class="pump-opt" onclick="window.APP.pumpPick('${prefix}','${p.id}')">
