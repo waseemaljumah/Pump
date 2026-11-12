@@ -2,7 +2,7 @@
 // app.js — نقطة البداية، الراوتر، الصلاحيات، APP العام
 // ═══════════════════════════════════════
 
-import { initPumps, renderPumps, addPump, deletePump, populateCitySelects, pumpSearch, pumpPick, pumpKey, pumpBlur } from './pumps.js';
+import { initPumps, renderPumps, addPump, deletePump, editPump, cancelPumpEdit, savePump, populateCitySelects, pumpSearch, pumpPick, pumpKey, pumpBlur } from './pumps.js';
 import { initReports, saveReport, clearNewForm, openEdit, closeEdit, saveEdit, deleteReport, addFaultToForm, delFormFault, editFormFault, checkFormFault, addWorkToForm, delFormWork, editFormWork, checkFormWork, rejectFormWork, addFaultToEdit, delEditFault, editEditFault, checkEditFault, addWorkToEdit, delEditWork, editEditWork, checkEditWork, rejectEditWork, initNewForm, archiveReport, unarchiveReport, toggleHidden, viewReport, closeView } from './reports.js';
 import { updateStats, renderDashboard, renderList, renderArchived } from './ui.js';
 import { doExport, previewExport } from './export.js';
@@ -184,7 +184,7 @@ window.APP = {
   // auth / theme / settings
   openLogin, closeLogin, doLogin, doLogout, toggleTheme, setSetting,
   // pumps
-  addPump, deletePump, renderPumps,
+  addPump, deletePump, renderPumps, editPump, cancelPumpEdit, savePump,
   pumpSearch, pumpPick, pumpKey, pumpBlur,
   // reports
   saveReport, clearNewForm,

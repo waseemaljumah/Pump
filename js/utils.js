@@ -43,7 +43,8 @@ export function matchFilter(r, f) {
   if (f === 'no-order')  return st === 'no-order';
   if (f === 'has-order') return !!r.orderDate;
   if (f === 'noreg')     return st === 'noreg';
-  if (f === 'worked')    return st === 'worked';
+  if (f === 'worked')    return !!r.worked;
+  if (f === 'worked-noreg') return !!r.worked && !r.registered;
   if (f === 'reg')       return !!r.registered;
   if (f === 'wait')      return st === 'wait';
   return true;

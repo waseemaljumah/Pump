@@ -2,7 +2,7 @@
 // pumps.js — إدارة المضخات
 // ═══════════════════════════════════════
 
-import { Col, Doc, Add, Delete, Listen, Q, OBy } from './firebase.js';
+import { Col, Doc, Add, Update, Delete, Listen, Q, OBy, Batch } from './firebase.js';
 import { state } from './state.js';
 import { toast, escHtml } from './utils.js';
 
@@ -214,6 +214,56 @@ export async function deletePump(id) {
   toast('🗑️ تم حذف المضخة', 'warn');
 }
 
+// ─── تعديل مضخة ───
+let editingPumpId = null;
+
+export function editPump(id) {
+  editingPumpId = id;
+  renderPumps();
+  document.getElementById('pe_num')?.focus();
+}
+
+export function cancelPumpEdit() {
+  editingPumpId = null;
+  renderPumps();
+}
+
+export async function savePump(id) {
+  const p = state.pumps.find(x => x.id === id);
+  if (!p) return;
+  const city = (document.getElementById('pe_city')?.value || '').trim();
+  const num  = (document.getElementById('pe_num')?.value  || '').trim();
+  const desc = (document.getElementById('pe_desc')?.value || '').trim();
+  if (!city || !num) { toast('البلدية ورقم المضخة مطلوبان', 'warn'); return; }
+
+  if (state.pumps.some(x => x.id !== id && norm(x.num) === norm(num) && norm(x.city) === norm(city))) {
+    toast('توجد مضخة بنفس الرقم في هذه البلدية', 'warn'); return;
+  }
+
+  try {
+    await Update(Doc('pumps', id), { city, num, desc, updatedAt: Date.now() });
+
+    // تحديث البلاغات المرتبطة بالمضخة (الرقم والبلدية محفوظة داخل كل بلاغ)
+    const linked = state.reports.filter(r => r.pumpId === id);
+    const changed = city !== p.city || num !== p.num || desc !== (p.desc || '');
+    if (linked.length && changed &&
+        confirm(`هذه المضخة مرتبطة بـ ${linked.length} بلاغ.\nهل تريد تحديث رقمها وبلديتها في هذه البلاغات أيضاً؟\n\nموافق = تحديث البلاغات\nإلغاء = تعديل المضخة فقط`)) {
+      const pumpNum = pumpLabel({ num, desc });
+      for (let i = 0; i < linked.length; i += 400) {
+        const b = Batch();
+        linked.slice(i, i + 400).forEach(r => b.update(Doc('reports', r.id), { city, pumpNum }));
+        await b.commit();
+      }
+    }
+    editingPumpId = null;
+    renderPumps();
+    toast('✅ تم حفظ تعديل المضخة', 'ok');
+  } catch (e) {
+    console.error(e);
+    toast('تعذّر حفظ التعديل', 'err');
+  }
+}
+
 // ─── رسم جدول المضخات ───
 export function renderPumps() {
   const fc  = document.getElementById('pf_city')?.value || '';
@@ -222,8 +272,10 @@ export function renderPumps() {
   if (!tbody) return;
 
   const data = state.pumps.filter(p => {
+    if (p.id === editingPumpId) return true; // لا تخفِ المضخة أثناء تعديلها
     if (fc && p.city !== fc) return false;
-    if (fq && !p.num.toLowerCase().includes(fq) && !p.city.includes(fq)) return false;
+    if (fq && !String(p.num).toLowerCase().includes(fq) && !String(p.city).includes(fq) &&
+        !String(p.desc || '').toLowerCase().includes(fq)) return false;
     return true;
   });
 
@@ -232,18 +284,48 @@ export function renderPumps() {
     return;
   }
 
-  tbody.innerHTML = data.map((p, i) => `
+  const cities = [...new Set([...CITIES, ...state.pumps.map(p => p.city)])];
+
+  // الحفاظ على ما كُتب في صف التعديل إن أُعيد رسم الجدول (تحديث من Firebase)
+  const draft = editingPumpId && document.getElementById('pe_num') ? {
+    num:  document.getElementById('pe_num').value,
+    city: document.getElementById('pe_city').value,
+    desc: document.getElementById('pe_desc').value,
+  } : null;
+
+  tbody.innerHTML = data.map((p, i) => {
+    if (p.id === editingPumpId) {
+      const v = draft || { num: p.num, city: p.city, desc: p.desc || '' };
+      return `
+    <tr class="row-editing">
+      <td>${i + 1}</td>
+      <td><input type="text" id="pe_num" value="${escHtml(v.num)}" style="min-width:90px"
+        onkeydown="if(event.key==='Enter')window.APP.savePump('${p.id}');if(event.key==='Escape')window.APP.cancelPumpEdit()"></td>
+      <td><select id="pe_city">
+        ${cities.map(c => `<option ${c === v.city ? 'selected' : ''}>${escHtml(c)}</option>`).join('')}
+      </select></td>
+      <td><input type="text" id="pe_desc" value="${escHtml(v.desc)}" placeholder="موقع أو وصف المضخة"
+        onkeydown="if(event.key==='Enter')window.APP.savePump('${p.id}');if(event.key==='Escape')window.APP.cancelPumpEdit()"></td>
+      <td>${p.createdAt ? new Date(p.createdAt).toLocaleDateString('ar-SA') : '—'}</td>
+      <td><div class="act-cell">
+        <button class="btn btn-success btn-sm" onclick="window.APP.savePump('${p.id}')">💾 حفظ</button>
+        <button class="btn btn-gray btn-sm" onclick="window.APP.cancelPumpEdit()">إلغاء</button>
+      </div></td>
+    </tr>`;
+    }
+    return `
     <tr>
       <td>${i + 1}</td>
-      <td><span class="pump-tag">${p.num}</span></td>
-      <td>${p.city}</td>
-      <td>${p.desc || '—'}</td>
+      <td><span class="pump-tag">${escHtml(p.num)}</span></td>
+      <td>${escHtml(p.city)}</td>
+      <td>${escHtml(p.desc) || '—'}</td>
       <td>${p.createdAt ? new Date(p.createdAt).toLocaleDateString('ar-SA') : '—'}</td>
-      <td>
-        <button class="btn btn-danger btn-sm"
-          onclick="window.APP.deletePump('${p.id}')">حذف</button>
-      </td>
-    </tr>`).join('');
+      <td><div class="act-cell">
+        <button class="btn btn-outline btn-sm" onclick="window.APP.editPump('${p.id}')">✏️ تعديل</button>
+        <button class="btn btn-danger btn-sm" onclick="window.APP.deletePump('${p.id}')">حذف</button>
+      </div></td>
+    </tr>`;
+  }).join('');
 }
 
 export { CITIES };

@@ -31,9 +31,9 @@ export function updateStats() {
   set('s0',       total);
   set('s1',       R.filter(r => !!r.orderDate).length);
   set('s2',       R.filter(r => !r.orderDate).length);
-  set('s3',       R.filter(r => r.worked && !r.registered).length);
+  set('s3',       R.filter(r => r.worked).length);
   set('s4',       R.filter(r => r.registered).length);
-  set('s5',       R.filter(r => r.orderDate && !r.registered).length);
+  set('s5',       R.filter(r => r.worked && !r.registered).length);
   set('s6',       R.filter(r => r.registered && !r.approved).length);
   set('s7',       done);
 
@@ -66,7 +66,7 @@ export function renderDashboard() {
     <div class="tw">
       <table>
         <thead><tr>
-          <th>رقم البلاغ</th><th>المضخة</th><th>البلدية</th><th>التاريخ</th>
+          <th>المضخة</th><th>البلدية</th><th>التاريخ</th>
           <th>أمر العمل</th><th>تم العمل</th><th>التسجيل</th><th>الاعتماد</th><th>الحالة</th><th>تفاصيل</th><th class="admin-only">إجراء</th>
         </tr></thead>
         <tbody>
@@ -114,7 +114,7 @@ export function renderList() {
   if (!tbody) return;
 
   if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="12">
+    tbody.innerHTML = `<tr><td colspan="11">
       <div class="empty"><div class="empty-icon">📭</div><p>لا توجد نتائج</p></div>
     </td></tr>`;
     return;
@@ -125,8 +125,7 @@ export function renderList() {
     
     return `<tr class="${r.hidden ? 'row-hidden' : ''}">
       <td>${i + 1}</td>
-      <td><strong>${esc(r.num) || '—'}</strong>${hiddenBadge(r)}</td>
-      <td><span class="pump-tag">${esc(r.pumpNum) || '—'}</span></td>
+      <td><span class="pump-tag">${esc(r.pumpNum) || '—'}</span>${hiddenBadge(r)}</td>
       <td>${esc(r.city)}</td>
       <td>${esc(r.date)}</td>
       <td><span class="badge ${r.orderDate ? 'b-blue' : 'b-red'}">${esc(r.orderDate) || '—'}</span></td>
@@ -213,8 +212,7 @@ export function renderArchived() {
 function reportRow(r) {
   const st = getStatus(r);
   return `<tr class="${r.hidden ? 'row-hidden' : ''}">
-    <td><strong>${esc(r.num) || '—'}</strong>${hiddenBadge(r)}</td>
-    <td><span class="pump-tag">${esc(r.pumpNum) || '—'}</span></td>
+    <td><span class="pump-tag">${esc(r.pumpNum) || '—'}</span>${hiddenBadge(r)}</td>
     <td>${esc(r.city)}</td>
     <td>${esc(r.date)}</td>
     <td><span class="badge ${r.orderDate  ? 'b-blue'   : 'b-red'}">${esc(r.orderDate) || '—'}</span></td>
