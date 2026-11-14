@@ -2,7 +2,7 @@
 // ui.js — رسم الواجهة (لوحة التحكم، الجداول، الإحصائيات)
 // ═══════════════════════════════════════
 
-import { state, isAdmin, canView } from './state.js';
+import { state, isAdmin, canView, visibleReports } from './state.js';
 import { getStatus, matchFilter, escHtml as esc } from './utils.js';
 
 // أيقونات العين (SVG بدل الإيموجي)
@@ -21,7 +21,7 @@ const hiddenBadge = r => r.hidden ? ` <span class="badge b-gray">${EYE_OFF} مخ
 // الإحصائيات العلوية
 // ══════════════════════════════════════
 export function updateStats() {
-  const R     = state.reports.filter(r => !r.archived); // تجاهل المؤرشفة
+  const R     = visibleReports().filter(r => !r.archived); // تجاهل المؤرشفة
   const total = R.length;
   const done  = R.filter(r => getStatus(r).code === 'done').length;
 
@@ -46,7 +46,7 @@ export function updateStats() {
 // ══════════════════════════════════════
 export function renderDashboard() {
   updateStats();
-  const urgent = state.reports
+  const urgent = visibleReports()
     .filter(r => !r.archived && getStatus(r).code !== 'done')
     .slice(0, 12);
   const el = document.getElementById('dashTable');
@@ -54,6 +54,8 @@ export function renderDashboard() {
 
   // الزائر: لا روابط للقائمة إن كانت مخفية
   document.querySelector('.stat-grid')?.classList.toggle('no-link', !canView('list'));
+  const newBtn = document.getElementById('dashNewBtn');
+  if (newBtn) newBtn.style.display = canView('new') ? '' : 'none';
   const allBtn = document.getElementById('dashAllBtn');
   if (allBtn) allBtn.style.display = canView('list') ? '' : 'none';
 
@@ -86,7 +88,7 @@ export function renderList() {
   const sort    = document.getElementById('fl_sort')?.value || 'desc';
   const vis     = isAdmin() ? (document.getElementById('fl_vis')?.value || '') : '';
 
-  let data = state.reports.filter(r => {
+  let data = visibleReports().filter(r => {
     // إخفاء البلاغات المؤرشفة من القائمة الرئيسية
     if (r.archived === true) return false;
     
@@ -152,7 +154,7 @@ export function renderArchived() {
   const city = document.getElementById('ar_city')?.value || '';
   const sort = document.getElementById('ar_sort')?.value || 'desc';
 
-  let data = state.reports.filter(r => {
+  let data = visibleReports().filter(r => {
     // فقط البلاغات المؤرشفة
     if (r.archived !== true) return false;
     
@@ -199,11 +201,12 @@ export function renderArchived() {
       <td><span class="badge ${r.registered? 'b-green' : 'b-red'}">${r.registered? '✓' : '✗'}</span></td>
       <td><span class="badge ${r.approved  ? 'b-green' : 'b-red'}">${r.approved  ? '✓' : '✗'}</span></td>
       <td><span class="badge ${status.cls}">${status.label}</span></td>
-      <td><div class="act-cell">
+      <td>${!isAdmin() ? viewBtn(r) : `<div class="act-cell">
+        ${viewBtn(r)}
         <button class="btn btn-outline btn-sm" onclick="window.APP.openEdit('${r.id}')">✏️</button>
         <button class="btn btn-success btn-sm" onclick="window.APP.unarchiveReport('${r.id}')" title="إلغاء الأرشفة">📤 استعادة</button>
         <button class="btn btn-danger  btn-sm" onclick="window.APP.deleteReport('${r.id}')">🗑️</button>
-      </div></td>
+      </div>`}</td>
     </tr>`;
   }).join('');
 }

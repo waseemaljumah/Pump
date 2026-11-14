@@ -1,0 +1,58 @@
+<!-- pages/audit.html — سجل التعديلات (للمالك فقط) -->
+<div class="ph">
+  <div>
+    <div class="ph-title">📜 سجل التعديلات</div>
+    <div class="ph-sub">عدد السجلات الحالي: <strong id="au_total">…</strong></div>
+  </div>
+  <button class="btn btn-outline" onclick="APP.renderAudit(true)">🔄 تحديث</button>
+</div>
+
+<div class="card">
+  <div class="setting-row">
+    <div>
+      <div class="setting-name">تشغيل السجل</div>
+      <div class="setting-desc">وهو موقوف ما ينكتب أي شي في السجل</div>
+    </div>
+    <label class="switch"><input type="checkbox" id="au_enabled" onchange="APP.setAuditEnabled(this.checked)"><span class="slider"></span></label>
+  </div>
+</div>
+
+<div class="fb">
+  <select id="au_user" onchange="APP.renderAudit()"><option value="">كل المستخدمين</option></select>
+  <select id="au_sec" onchange="APP.renderAudit()">
+    <option value="">كل الأقسام</option>
+    <option>البلاغات</option><option>المضخات</option><option>المستخدمين</option><option>الإعدادات</option>
+  </select>
+  <input type="text" id="au_q" placeholder="🔍 بحث..." oninput="APP.renderAudit()" style="max-width:220px">
+</div>
+
+<div class="card">
+  <div class="card-title">
+    <div class="card-title-left">السجلات — <span id="au_shown">0</span> ظاهر من <span id="au_loaded">0</span> محمّل</div>
+  </div>
+
+  <div class="audit-tools">
+    <button class="btn btn-outline btn-sm" onclick="APP.auditSelectVisible()">☑️ تحديد الظاهر</button>
+    <button class="btn btn-danger btn-sm" onclick="APP.auditDeleteSelected()">🗑️ حذف المحدد (<span id="au_selCount">0</span>)</button>
+    <span class="audit-sep"></span>
+    <span style="font-size:13px">حذف الأقدم من</span>
+    <input type="number" id="au_days" min="1" value="30" style="width:70px">
+    <span style="font-size:13px">يوم</span>
+    <button class="btn btn-danger btn-sm" onclick="APP.auditDeleteOlder()">حذف</button>
+    <span class="audit-sep"></span>
+    <button class="btn btn-danger btn-sm" onclick="APP.auditDeleteAll()">⚠️ حذف الكل</button>
+  </div>
+
+  <div class="tw">
+    <table class="audit-table">
+      <thead>
+        <tr><th style="width:34px"></th><th>الاسم</th><th>العملية</th><th>السجل</th><th>القسم</th><th>الوقت</th><th>التغييرات</th></tr>
+      </thead>
+      <tbody id="au_body"><tr><td colspan="7"><div class="loader"><div class="spin"></div> جار التحميل...</div></td></tr></tbody>
+    </table>
+  </div>
+  <div class="btn-row" id="au_moreRow" style="justify-content:center;display:none">
+    <button class="btn btn-outline" id="au_more" onclick="APP.auditLoadMore()">⬇️ عرض المزيد</button>
+  </div>
+  <p class="hint-text">التصفية والبحث تشمل السجلات المحمّلة — اضغط «عرض المزيد» للبحث في الأقدم.</p>
+</div>

@@ -2,9 +2,10 @@
 // reports.js — البلاغات (حفظ / تعديل / حذف)
 // ═══════════════════════════════════════
 
-import { Col, Doc, Add, Update, Delete, Listen, Q, OBy, Where, Batch } from './firebase.js';
-import { state } from './state.js';
-import { toast, getStatus, nowStamp, todayISO, setCI, getCI, renderItems, renderItemsReadonly, escHtml } from './utils.js';
+import { Col, Doc, Listen, Q, OBy, Where, Batch } from './firebase.js';
+import { Add, Update, Delete } from './db.js';
+import { state, isOwner } from './state.js';
+import { toast, getStatus, nowStamp, todayISO, setCI, getCI, renderItems, renderItemsReadonly, escHtml, rid } from './utils.js';
 import { getPumpPick, resetPumpPicker, setPumpPickFromReport, norm, pumpLabel } from './pumps.js';
 
 // مؤقتات النموذج
@@ -15,8 +16,8 @@ let editFaults = [];
 let editWorks  = [];
 
 // ─── بدء الاستماع للبلاغات ───
-// admin = true  → كل البلاغات (بما فيها المخفية)
-// admin = false → البلاغات غير المخفية فقط (تفرضها قواعد Firestore أيضاً)
+// all = true  → كل البلاغات (بما فيها المخفية) — المالك ومن عنده تعديل
+// all = false → البلاغات غير المخفية فقط (تفرضها قواعد Firestore أيضاً)
 export function initReports(onUpdate, admin = false) {
   const ref = admin
     ? Q(Col('reports'), OBy('createdAt', 'desc'))
@@ -26,7 +27,7 @@ export function initReports(onUpdate, admin = false) {
     const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (!admin) list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     state.reports = list;
-    if (admin) migrateHiddenField(snap.docs);
+    if (admin && isOwner()) migrateHiddenField(snap.docs);
     if (typeof onUpdate === 'function') onUpdate();
   }, err => {
     console.warn('reports listener:', err);
@@ -127,7 +128,7 @@ export function initNewForm() {
 export function addFaultToForm() {
   const v = document.getElementById('f_faultInput')?.value.trim();
   if (!v) return;
-  formFaults.push({ text: v, date: nowStamp(), done: false });
+  formFaults.push({ id: rid(), text: v, date: nowStamp(), done: false });
   document.getElementById('f_faultInput').value = '';
   renderItems('faultsList', formFaults, 'window.APP.delFormFault', 'window.APP.editFormFault', 'window.APP.checkFormFault');
 }
@@ -151,7 +152,7 @@ export function checkFormFault(i) {
 export function addWorkToForm() {
   const v = document.getElementById('f_workInput')?.value.trim();
   if (!v) return;
-  formWorks.push({ text: v, date: nowStamp(), done: false });
+  formWorks.push({ id: rid(), text: v, date: nowStamp(), done: false });
   document.getElementById('f_workInput').value = '';
   renderItems('worksList', formWorks, 'window.APP.delFormWork', 'window.APP.editFormWork', 'window.APP.checkFormWork', 'window.APP.rejectFormWork');
 }
@@ -233,6 +234,8 @@ export async function openEdit(id) {
   editId     = id;
   editFaults = JSON.parse(JSON.stringify(r.faults || []));
   editWorks  = JSON.parse(JSON.stringify(r.works  || []));
+  // صفوف قديمة بدون id → نعطيها id (لمقارنة الصفوف في السجل)
+  [...editFaults, ...editWorks].forEach(x => { if (x && !x.id) x.id = rid(); });
 
   document.getElementById('editLabel').textContent =
     r.num ? 'بلاغ رقم ' + r.num : r.pumpNum || '';
@@ -320,7 +323,7 @@ export function closeEdit() {
 export function addFaultToEdit() {
   const v = document.getElementById('e_faultInput')?.value.trim();
   if (!v) return;
-  editFaults.push({ text: v, date: nowStamp(), done: false });
+  editFaults.push({ id: rid(), text: v, date: nowStamp(), done: false });
   document.getElementById('e_faultInput').value = '';
   renderItems('e_faultsList', editFaults, 'window.APP.delEditFault', 'window.APP.editEditFault', 'window.APP.checkEditFault');
 }
@@ -341,7 +344,7 @@ export function checkEditFault(i) {
 export function addWorkToEdit() {
   const v = document.getElementById('e_workInput')?.value.trim();
   if (!v) return;
-  editWorks.push({ text: v, date: nowStamp(), done: false });
+  editWorks.push({ id: rid(), text: v, date: nowStamp(), done: false });
   document.getElementById('e_workInput').value = '';
   renderItems('e_worksList', editWorks, 'window.APP.delEditWork', 'window.APP.editEditWork', 'window.APP.checkEditWork', 'window.APP.rejectEditWork');
 }

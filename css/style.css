@@ -467,3 +467,44 @@ input[readonly] { background:var(--surface2); color:var(--text-mid); cursor:defa
 .ico { width:16px; height:16px; vertical-align:middle; }
 .btn-icon.is-off { color:var(--text-dim); }
 .badge .ico { width:12px; height:12px; margin-left:3px; vertical-align:-2px; }
+
+/* ══════════ الحسابات والصلاحيات والسجل ══════════ */
+.user-name  { color:#fff; font-size:12.5px; font-weight:700; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; unicode-bidi:plaintext; }
+.user-role:empty { display:none; }
+.user-role  { background:rgba(255,255,255,.18); color:#fff; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:20px; }
+
+.msg-body { font-size:14px; line-height:1.9; color:var(--text-mid); margin-bottom:6px; }
+.msg-uid  { margin-top:12px; padding:10px 12px; background:var(--surface2); border-radius:8px; font-size:12px; line-height:1.8; }
+.msg-uid code, .hint-text code { direction:ltr; unicode-bidi:embed; font-size:11.5px; background:var(--border); padding:1px 5px; border-radius:4px; user-select:all; }
+
+.hint-text { font-size:12px; color:var(--text-dim); line-height:1.8; margin-top:10px; }
+
+/* محرر الصلاحيات */
+.perm-head  { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+.perm-quick { display:flex; gap:6px; flex-wrap:wrap; }
+.perm-row   { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:11px 0; border-bottom:1px solid var(--border); }
+.perm-row:last-child { border-bottom:none; }
+.seg        { display:inline-flex; border:1px solid var(--border2); border-radius:9px; overflow:hidden; flex-shrink:0; }
+.seg-btn    { border:none; background:var(--surface); color:var(--text-mid); padding:7px 14px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; transition:all .15s; }
+.seg-btn + .seg-btn { border-right:1px solid var(--border2); }
+.seg-btn:hover { background:var(--surface2); }
+.seg-hidden.on { background:var(--gray-bg);       color:var(--gray-text); }
+.seg-view.on   { background:var(--primary-light); color:var(--primary); }
+.seg-edit.on   { background:var(--green-light);   color:var(--green); }
+.seg-btn.on    { font-weight:800; box-shadow:inset 0 -3px 0 currentColor; }
+.perm-badges   { display:flex; gap:4px; flex-wrap:wrap; }
+
+/* السجل */
+.audit-tools { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+.audit-sep   { width:1px; height:22px; background:var(--border); margin:0 4px; }
+.audit-row   { cursor:pointer; }
+.audit-row:hover, .audit-row.open { background:var(--primary-light); }
+.audit-email { font-size:11px; color:var(--text-dim); }
+.audit-time  { white-space:nowrap; font-size:12px; }
+.audit-detail > td { background:var(--surface2); padding:10px 14px !important; }
+.changes-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+.changes-table th, .changes-table td { padding:6px 8px; border:1px solid var(--border); text-align:right; vertical-align:top; }
+.changes-table th { background:var(--surface); }
+.aud-before { color:var(--red);   background:var(--red-light);   white-space:pre-wrap; word-break:break-word; }
+.aud-after  { color:var(--green); background:var(--green-light); white-space:pre-wrap; word-break:break-word; }
+td.ltr { direction:ltr; text-align:right; }

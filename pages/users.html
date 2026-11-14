@@ -1,0 +1,74 @@
+<!-- pages/users.html — إدارة المستخدمين (للمالك فقط) -->
+<div class="ph">
+  <div>
+    <div class="ph-title">👥 إدارة المستخدمين</div>
+    <div class="ph-sub" id="usersCount">—</div>
+  </div>
+  <button class="btn btn-primary" onclick="APP.openUserModal()">➕ مستخدم جديد</button>
+</div>
+
+<div class="card">
+  <div class="card-title"><div class="card-title-left">👑 اسم المالك</div></div>
+  <div class="fg">
+    <div class="f">
+      <label>الاسم الذي يظهر في السجل وأعلى الصفحة بدل البريد</label>
+      <input type="text" id="u_ownerName" placeholder="اكتب اسمك"
+             onkeydown="if(event.key==='Enter')APP.saveOwnerName()">
+    </div>
+  </div>
+  <div class="btn-row"><button class="btn btn-primary" onclick="APP.saveOwnerName()">💾 حفظ الاسم</button></div>
+</div>
+
+<div class="card">
+  <div class="card-title"><div class="card-title-left">📋 المستخدمون</div></div>
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>#</th><th>الاسم</th><th>البريد</th><th>الصلاحيات</th><th>الحالة</th><th>تاريخ الإنشاء</th><th>إجراء</th></tr>
+      </thead>
+      <tbody id="usersBody"></tbody>
+    </table>
+  </div>
+  <p class="hint-text">
+    🗑️ <strong>الحذف</strong> يحذف ملف المستخدم من Firestore فلا يقدر يدخل أي قسم، لكن حسابه يظل موجوداً في
+    <strong>Firebase Authentication</strong> — احذفه من هناك يدوياً (Console ← Authentication ← Users).
+  </p>
+</div>
+
+<!-- نافذة إضافة / تعديل مستخدم -->
+<div class="overlay" id="userOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span id="um_title">➕ مستخدم جديد</span>
+      <span class="modal-close" onclick="APP.closeUserModal()">✕</span>
+    </div>
+
+    <div class="fg">
+      <div class="f"><label>الاسم <span class="req">*</span></label><input type="text" id="um_name"></div>
+      <div class="f"><label>البريد الإلكتروني <span class="req">*</span></label><input type="email" id="um_email" class="ltr" autocomplete="off"></div>
+      <div class="f" id="um_passWrap"><label>كلمة المرور <span class="req">*</span> (6 أحرف على الأقل)</label><input type="text" id="um_pass" class="ltr" autocomplete="new-password"></div>
+    </div>
+
+    <div class="sep"></div>
+    <div class="perm-head">
+      <div style="font-size:13px;font-weight:700">🔑 الصلاحيات لكل قسم</div>
+      <div class="perm-quick">
+        <button class="btn btn-gray btn-sm"    onclick="APP.setAllPerms('hidden')">الكل مخفي</button>
+        <button class="btn btn-outline btn-sm" onclick="APP.setAllPerms('view')">الكل مشاهدة</button>
+        <button class="btn btn-success btn-sm" onclick="APP.setAllPerms('edit')">الكل تعديل</button>
+      </div>
+    </div>
+    <div id="um_perms"></div>
+    <p class="hint-text">
+      <strong>مخفي:</strong> القسم ما يطلع له. ·
+      <strong>مشاهدة:</strong> يشوفه مثل الزائر حتى لو القسم مخفي عن الزوار. ·
+      <strong>تعديل:</strong> إضافة وتعديل وحذف مثل المالك.
+    </p>
+
+    <div class="login-err" id="um_err"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="um_save" onclick="APP.saveUser()">💾 حفظ</button>
+      <button class="btn btn-gray" onclick="APP.closeUserModal()">إلغاء</button>
+    </div>
+  </div>
+</div>

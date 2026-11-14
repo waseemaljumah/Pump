@@ -2,8 +2,9 @@
 // pumps.js — إدارة المضخات
 // ═══════════════════════════════════════
 
-import { Col, Doc, Add, Update, Delete, Listen, Q, OBy, Batch } from './firebase.js';
-import { state } from './state.js';
+import { Col, Doc, Listen, Batch } from './firebase.js';
+import { Add, Update, Delete, logEntry } from './db.js';
+import { state, isAdmin, canEdit } from './state.js';
 import { toast, escHtml } from './utils.js';
 
 const CITIES = [
@@ -218,6 +219,7 @@ export async function deletePump(id) {
 let editingPumpId = null;
 
 export function editPump(id) {
+  if (!isAdmin()) return;
   editingPumpId = id;
   renderPumps();
   document.getElementById('pe_num')?.focus();
@@ -246,7 +248,7 @@ export async function savePump(id) {
     // تحديث البلاغات المرتبطة بالمضخة (الرقم والبلدية محفوظة داخل كل بلاغ)
     const linked = state.reports.filter(r => r.pumpId === id);
     const changed = city !== p.city || num !== p.num || desc !== (p.desc || '');
-    if (linked.length && changed &&
+    if (linked.length && changed && canEdit('reports') &&
         confirm(`هذه المضخة مرتبطة بـ ${linked.length} بلاغ.\nهل تريد تحديث رقمها وبلديتها في هذه البلاغات أيضاً؟\n\nموافق = تحديث البلاغات\nإلغاء = تعديل المضخة فقط`)) {
       const pumpNum = pumpLabel({ num, desc });
       for (let i = 0; i < linked.length; i += 400) {
@@ -254,6 +256,14 @@ export async function savePump(id) {
         linked.slice(i, i + 400).forEach(r => b.update(Doc('reports', r.id), { city, pumpNum }));
         await b.commit();
       }
+      // سطر واحد في السجل لكل التحديث الجماعي
+      const rows = [];
+      linked.forEach(r => {
+        const name = `${r.pumpNum || '—'} · ${r.date || ''}`;
+        if (r.city !== city)       rows.push({ row: name, field: 'البلدية', before: r.city || '', after: city });
+        if (r.pumpNum !== pumpNum) rows.push({ row: name, field: 'المضخة',  before: r.pumpNum || '', after: pumpNum });
+      });
+      logEntry('update', 'reports', id, `تحديث ${linked.length} بلاغ للمضخة ${num}`, rows);
     }
     editingPumpId = null;
     renderPumps();
@@ -320,7 +330,7 @@ export function renderPumps() {
       <td>${escHtml(p.city)}</td>
       <td>${escHtml(p.desc) || '—'}</td>
       <td>${p.createdAt ? new Date(p.createdAt).toLocaleDateString('ar-SA') : '—'}</td>
-      <td><div class="act-cell">
+      <td class="admin-only"><div class="act-cell">
         <button class="btn btn-outline btn-sm" onclick="window.APP.editPump('${p.id}')">✏️ تعديل</button>
         <button class="btn btn-danger btn-sm" onclick="window.APP.deletePump('${p.id}')">حذف</button>
       </div></td>

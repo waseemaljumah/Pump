@@ -21,6 +21,11 @@ export function nowStamp() {
   });
 }
 
+// معرّف قصير للصفوف (الأعطال/الأعمال) — يستخدمه السجل لمقارنة الصفوف
+export function rid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
 export function todayISO() {
   return new Date().toISOString().split('T')[0];
 }

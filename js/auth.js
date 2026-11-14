@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════
-// auth.js — تسجيل دخول / خروج الأدمن
+// auth.js — تسجيل دخول / خروج + طرد الحساب الموقوف
 // ═══════════════════════════════════════
 
 import { signIn, signOutUser } from './firebase.js';
@@ -48,4 +48,21 @@ export async function doLogin() {
 export async function doLogout() {
   await signOutUser();
   toast('تم تسجيل الخروج', 'warn');
+}
+
+// ─── طرد الحساب (موقوف / محذوف) مع رسالة ───
+let kicking = false;
+export async function kickOut(html) {
+  if (kicking) return;
+  kicking = true;
+  document.getElementById('editOverlay')?.classList.remove('open');
+  const body = document.getElementById('msgBody');
+  if (body) body.innerHTML = html;
+  document.getElementById('msgOverlay')?.classList.add('open');
+  try { await signOutUser(); } catch (e) { console.warn(e); }
+  kicking = false;
+}
+
+export function closeMsg() {
+  document.getElementById('msgOverlay')?.classList.remove('open');
 }

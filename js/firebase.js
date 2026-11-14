@@ -15,12 +15,22 @@ import {
   query,
   orderBy,
   where,
-  writeBatch
+  writeBatch,
+  getDoc,
+  getDocFromCache,
+  getDocs,
+  getCountFromServer,
+  limit,
+  startAfter
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getAuth,
+  initializeAuth,
+  inMemoryPersistence,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
@@ -49,8 +59,49 @@ export const Q      = query;
 export const OBy    = orderBy;
 export const Where  = where;
 export const Batch  = () => writeBatch(db);
+export const Get    = getDoc;
+export const GetCached = getDocFromCache;
+export const GetAll = getDocs;
+export const Count  = getCountFromServer;
+export const Limit  = limit;
+export const After  = startAfter;
 
 // ─── Auth helpers ───
 export const onAuth      = (cb)        => onAuthStateChanged(auth, cb);
 export const signIn      = (email, pw) => signInWithEmailAndPassword(auth, email, pw);
 export const signOutUser = ()          => signOut(auth);
+export const resetPassword = (email)  => sendPasswordResetEmail(auth, email);
+
+// ─── App ثاني منفصل لإنشاء حسابات المستخدمين ───
+// لو أنشأنا الحساب بالـ App الأساسي، Firebase يسجّل دخول المستخدم الجديد
+// ويطلّع المالك من حسابه. الـ App الثاني له جلسة مستقلة في الذاكرة فقط.
+let secondaryAuth = null;
+function getSecondaryAuth() {
+  if (!secondaryAuth) {
+    const app2 = initializeApp(firebaseConfig, 'user-creator');
+    secondaryAuth = initializeAuth(app2, { persistence: inMemoryPersistence });
+  }
+  return secondaryAuth;
+}
+
+// ينشئ الحساب ويرجّع uid (بدون التأثير على جلسة المالك)
+export async function createAccount(email, pw) {
+  const a = getSecondaryAuth();
+  try {
+    const cred = await createUserWithEmailAndPassword(a, email, pw);
+    return cred.user.uid;
+  } finally {
+    await signOut(a).catch(() => {});
+  }
+}
+
+// لحساب موجود مسبقاً في Authentication: نتحقق من كلمة المرور ونرجّع uid
+export async function accountUid(email, pw) {
+  const a = getSecondaryAuth();
+  try {
+    const cred = await signInWithEmailAndPassword(a, email, pw);
+    return cred.user.uid;
+  } finally {
+    await signOut(a).catch(() => {});
+  }
+}

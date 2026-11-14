@@ -27,9 +27,10 @@
   </div>
   <div class="top-actions">
     <button class="top-btn" id="themeBtn" onclick="APP.toggleTheme()">🌙 ليلي</button>
-    <button class="top-btn" id="loginBtn" style="display:none" onclick="APP.openLogin()">🔐 دخول الإدارة</button>
+    <button class="top-btn" id="loginBtn" style="display:none" onclick="APP.openLogin()">🔐 تسجيل الدخول</button>
     <div class="user-box" id="userBox" style="display:none">
-      <span class="user-email" id="userEmail"></span>
+      <span class="user-role" id="userRole"></span>
+      <span class="user-name" id="userName"></span>
       <button class="top-btn" onclick="APP.doLogout()">خروج</button>
     </div>
   </div>
@@ -52,7 +53,13 @@
       <div class="nav-sep"></div>
       <div class="nav-group">الإعدادات</div>
       <div class="nav-item"        id="nav-pumps"     onclick="APP.navTo('pumps')">🔧 إدارة المضخات</div>
-      <div class="nav-item"        id="nav-settings"  onclick="APP.navTo('settings')">إعدادات الظهور</div>
+      <div class="nav-item"        id="nav-settings"  onclick="APP.navTo('settings')">🌐 إعدادات الظهور</div>
+    </div>
+    <div id="sec-admin">
+      <div class="nav-sep"></div>
+      <div class="nav-group">الإدارة</div>
+      <div class="nav-item"        id="nav-users"     onclick="APP.navTo('users')">👥 إدارة المستخدمين</div>
+      <div class="nav-item"        id="nav-audit"     onclick="APP.navTo('audit')">📜 سجل التعديلات</div>
     </div>
     <div id="sec-reports">
       <div class="nav-sep"></div>
@@ -152,7 +159,7 @@
 <div class="overlay" id="loginOverlay">
   <div class="modal modal-sm">
     <div class="modal-head">
-      <span>🔐 دخول الإدارة</span>
+      <span>🔐 تسجيل الدخول</span>
       <span class="modal-close" onclick="APP.closeLogin()">✕</span>
     </div>
     <div class="fg" style="grid-template-columns:1fr">
@@ -167,6 +174,20 @@
     <div class="btn-row">
       <button class="btn btn-primary" id="l_btn" onclick="APP.doLogin()">دخول</button>
       <button class="btn btn-gray" onclick="APP.closeLogin()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MESSAGE MODAL (طرد الحساب) ══ -->
+<div class="overlay" id="msgOverlay">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <span>⚠️ تنبيه</span>
+      <span class="modal-close" onclick="APP.closeMsg()">✕</span>
+    </div>
+    <div class="msg-body" id="msgBody"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="APP.closeMsg()">حسناً</button>
     </div>
   </div>
 </div>

@@ -7,11 +7,16 @@ import { initReports, saveReport, clearNewForm, openEdit, closeEdit, saveEdit, d
 import { updateStats, renderDashboard, renderList, renderArchived } from './ui.js';
 import { doExport, previewExport } from './export.js';
 import { initSettings, ensureDefaultSettings, setSetting, renderSettings } from './settings.js';
-import { openLogin, closeLogin, doLogin, doLogout } from './auth.js';
+import { openLogin, closeLogin, doLogin, doLogout, kickOut, closeMsg } from './auth.js';
+import { initUsers, renderUsersPage, saveOwnerName, openUserModal, closeUserModal, setPerm, setAllPerms, saveUser, toggleUserDisabled, sendUserReset, deleteUser } from './users.js';
+import { initAuditPage, renderAudit, toggleAuditRow, setAuditEnabled, auditSelectVisible, auditToggleSel, auditDeleteSelected, auditDeleteOlder, auditDeleteAll, auditLoadMore } from './audit.js';
 import { initTheme, toggleTheme } from './theme.js';
-import { onAuth } from './firebase.js';
+import { onAuth, Listen, Doc } from './firebase.js';
 import { toggleCI, todayISO } from './utils.js';
-import { state, isAdmin, canView, anyPublic, VISITOR_PAGES } from './state.js';
+import {
+  state, isAdmin, isOwner, isMember, canView, anyPublic, setScope, displayName,
+  needsAllReports, needsPumps, VISITOR_PAGES, MEMBER_PAGES, PAGE_SECTION,
+} from './state.js';
 
 // ─── صفحات المشروع ───
 const PAGES = {
@@ -22,10 +27,23 @@ const PAGES = {
   pumps:      'pages/pumps.html',
   export:     'pages/export.html',
   settings:   'pages/settings.html',
+  users:      'pages/users.html',
+  audit:      'pages/audit.html',
 };
+const ALL_PAGES = Object.keys(PAGES);
 
 let currentPage = 'dashboard';
 let started = false;
+
+// ══════════════════════════════════════
+// Section Scope — كل صفحة تابعة لقسم تُفتح داخل نطاقه
+// داخل النطاق: isAdmin() = يقدر يعدّل هذا القسم، فكل الأزرار
+// المعتمدة على isAdmin / .admin-only تشتغل بدون تعديل كل صفحة.
+// ══════════════════════════════════════
+function enterScope(page) {
+  setScope(PAGE_SECTION[page] || null);
+  document.body.classList.toggle('is-admin', isAdmin());
+}
 
 // ══════════════════════════════════════
 // ROUTER — تحميل الصفحة
@@ -37,17 +55,20 @@ async function loadPage(name) {
   const res  = await fetch(url);
   const html = await res.text();
   if (currentPage !== name) return;           // تغيّرت الصفحة أثناء التحميل
+  enterScope(name);
   document.getElementById('mainContent').innerHTML = html;
 
   populateCitySelects();
+  renderPage(name, true);
+}
 
+function renderPage(name, first = false) {
   if (name === 'dashboard') {
     renderDashboard();
   } else if (name === 'new') {
-    initNewForm();
-    document.getElementById('f_date').value = todayISO();
+    if (first) { initNewForm(); document.getElementById('f_date').value = todayISO(); }
   } else if (name === 'list') {
-    if (state.pendingFilter !== null) {
+    if (first && state.pendingFilter !== null) {
       const sel = document.getElementById('fl_st');
       if (sel) sel.value = state.pendingFilter;
       state.pendingFilter = null;
@@ -59,6 +80,10 @@ async function loadPage(name) {
     renderPumps();
   } else if (name === 'settings') {
     renderSettings();
+  } else if (name === 'users') {
+    renderUsersPage();
+  } else if (name === 'audit') {
+    first ? initAuditPage() : renderAudit();
   }
 }
 
@@ -79,18 +104,28 @@ function goFilter(f) {
 }
 
 function firstAllowed() {
-  return isAdmin() ? 'dashboard' : VISITOR_PAGES.find(canView) || null;
+  if (isOwner())  return 'dashboard';
+  if (isMember()) return MEMBER_PAGES.find(canView) || null;
+  return VISITOR_PAGES.find(canView) || null;
 }
 
 function showNoAccess() {
   currentPage = 'none';
+  setScope(null);
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('mainContent').innerHTML = `
+  document.getElementById('mainContent').innerHTML = state.user ? `
+    <div class="empty">
+      <div class="empty-icon">🔒</div>
+      <p>لا توجد أقسام متاحة لحسابك حالياً — تواصل مع المالك</p>
+      <div class="btn-row" style="justify-content:center">
+        <button class="btn btn-gray" onclick="APP.doLogout()">خروج</button>
+      </div>
+    </div>` : `
     <div class="empty">
       <div class="empty-icon">🔒</div>
       <p>لا توجد أقسام متاحة للعرض حالياً</p>
       <div class="btn-row" style="justify-content:center">
-        <button class="btn btn-primary" onclick="APP.openLogin()">🔐 دخول الإدارة</button>
+        <button class="btn btn-primary" onclick="APP.openLogin()">🔐 تسجيل الدخول</button>
       </div>
     </div>`;
 }
@@ -99,25 +134,27 @@ function showNoAccess() {
 // الصلاحيات — إظهار/إخفاء عناصر الواجهة
 // ══════════════════════════════════════
 function applyAccess() {
-  const admin = isAdmin();
-  document.body.classList.toggle('is-admin', admin);
+  document.body.classList.toggle('is-owner', isOwner());
+  document.body.classList.toggle('is-admin', isAdmin());   // حسب القسم الحالي
 
   const show = (id, ok) => { const el = document.getElementById(id); if (el) el.style.display = ok ? '' : 'none'; };
-  const pages = ['dashboard', 'new', 'list', 'archived', 'pumps', 'settings', 'export'];
-  pages.forEach(p => show('nav-' + p, canView(p)));
+  ALL_PAGES.forEach(p => show('nav-' + p, canView(p)));
 
   show('sec-main',     ['dashboard', 'new', 'list', 'archived'].some(canView));
   show('sec-settings', ['pumps', 'settings'].some(canView));
+  show('sec-admin',    ['users', 'audit'].some(canView));
   show('sec-reports',  canView('export'));
   show('chips',        canView('dashboard'));
 
-  show('loginBtn', !admin);
-  show('userBox',  admin);
-  const em = document.getElementById('userEmail');
-  if (em) em.textContent = state.user?.email || '';
+  show('loginBtn', !state.user);
+  show('userBox',  !!state.user);
+  const nm = document.getElementById('userName');
+  if (nm) { nm.textContent = displayName(); nm.title = state.user?.email || ''; }
+  const role = document.getElementById('userRole');
+  if (role) role.textContent = isOwner() ? 'المالك' : '';
 
-  // إن لم يبقَ أي قسم للزائر نخفي الشريط الجانبي
-  show('sidebar', pages.some(canView));
+  // إن لم يبقَ أي قسم نخفي الشريط الجانبي
+  show('sidebar', ALL_PAGES.some(canView));
 }
 
 function ensurePage() {
@@ -130,38 +167,62 @@ function ensurePage() {
 }
 
 // ══════════════════════════════════════
-// المستمعون — تتغير حسب الأدمن/الزائر
+// المستمعون — تتغير حسب الدور والصلاحيات
 // ══════════════════════════════════════
-let unsubReports = null, unsubPumps = null, listenKey = '';
+let unsubReports = null, unsubPumps = null, unsubUsers = null, listenKey = '';
 
 function refreshCurrent() {
   updateStats();
-  if (currentPage === 'dashboard') renderDashboard();
-  if (currentPage === 'list')      renderList();
-  if (currentPage === 'archived')  renderArchived();
-  if (currentPage === 'settings')  renderSettings();
+  if (currentPage !== 'none' && canView(currentPage)) {
+    enterScope(currentPage);
+    renderPage(currentPage);
+  }
 }
 
 function syncListeners() {
-  const key = isAdmin() ? 'admin' : (anyPublic() ? 'visitor' : 'none');
+  let key = 'none';
+  if (isOwner())       key = 'owner';
+  else if (isMember()) key = `member:${needsAllReports() ? 'all' : 'pub'}:${needsPumps() ? 'p' : ''}`;
+  else if (!state.user && anyPublic()) key = 'visitor';
   if (key === listenKey) return;
   listenKey = key;
 
-  unsubReports?.(); unsubPumps?.();
-  unsubReports = unsubPumps = null;
-  state.reports = []; state.pumps = [];
+  unsubReports?.(); unsubPumps?.(); unsubUsers?.();
+  unsubReports = unsubPumps = unsubUsers = null;
+  state.reports = []; state.pumps = []; state.users = [];
 
-  if (key === 'admin') {
-    unsubPumps   = initPumps(() => { renderPumps(); populateCitySelects(); });
-    unsubReports = initReports(refreshCurrent, true);
-  } else if (key === 'visitor') {
-    unsubReports = initReports(refreshCurrent, false);
-  }
+  if (key === 'none') { refreshCurrent(); return; }
+
+  if (needsPumps()) unsubPumps = initPumps(() => { if (currentPage === 'pumps') renderPumps(); populateCitySelects(); });
+  unsubReports = initReports(refreshCurrent, key === 'owner' || key.includes(':all'));
+  if (key === 'owner') unsubUsers = initUsers(() => { if (currentPage === 'users' || currentPage === 'audit') renderPage(currentPage); });
   refreshCurrent();
+}
+
+// هل اكتمل تحميل بيانات الحساب؟ + طرد الحساب الموقوف / المحذوف
+function accountReady() {
+  if (!state.user) return true;
+  if (!state.adminLoaded) return false;
+  if (isOwner()) return true;
+  if (!state.profileLoaded) return false;
+
+  if (!state.profile) {
+    kickOut(`لا يوجد حساب مفعّل لهذا البريد في النظام، أو تم حذفه.<br>تواصل مع المالك.
+      <div class="msg-uid">معرّف الحساب (UID): <code>${state.user.uid}</code><br>
+      إذا كنت المالك: أضف هذا المعرّف في <code>settings/admin → adminUids</code></div>`);
+    return false;
+  }
+  if (state.profile.disabled === true) {
+    kickOut('تم إيقاف حسابك.<br>تواصل مع المالك لإعادة تفعيله.');
+    return false;
+  }
+  return true;
 }
 
 function onStateChange() {
   if (!state.authReady || !state.settingsLoaded) return;
+  if (!accountReady()) return;
+
   ensureDefaultSettings();
   applyAccess();
   syncListeners();
@@ -172,8 +233,51 @@ function onStateChange() {
     first ? navTo(first) : showNoAccess();
   } else {
     ensurePage();
-    if (currentPage === 'settings') renderSettings();
+    refreshCurrent();
   }
+}
+
+// ══════════════════════════════════════
+// حساب المستخدم — ملفه وإعدادات المالك والسجل (مباشرة بـ onSnapshot)
+// ══════════════════════════════════════
+let accountUnsubs = [];
+
+function watchAccount(user) {
+  accountUnsubs.forEach(u => u?.());
+  accountUnsubs = [];
+  state.adminCfg = { adminUids: [], ownerName: '' };
+  state.adminLoaded = false;
+  state.profile = null;
+  state.profileLoaded = false;
+  state.auditEnabled = true;
+  if (!user) return;
+
+  accountUnsubs.push(Listen(Doc('settings', 'admin'), snap => {
+    state.adminCfg = { adminUids: [], ownerName: '', ...(snap.exists() ? snap.data() : {}) };
+    state.adminLoaded = true;
+    onStateChange();
+  }, err => {
+    console.warn('admin cfg:', err);
+    state.adminLoaded = true;
+    onStateChange();
+  }));
+
+  // أي تغيير في الصلاحيات أو الإيقاف يُطبّق فوراً
+  accountUnsubs.push(Listen(Doc('users', user.uid), snap => {
+    state.profile = snap.exists() ? { id: snap.id, ...snap.data() } : null;
+    state.profileLoaded = true;
+    onStateChange();
+  }, err => {
+    console.warn('profile:', err);
+    state.profile = null;
+    state.profileLoaded = true;
+    onStateChange();
+  }));
+
+  accountUnsubs.push(Listen(Doc('settings', 'audit'), snap => {
+    state.auditEnabled = snap.exists() ? snap.data().enabled !== false : true;
+    if (currentPage === 'audit') renderAudit();
+  }, err => console.warn('audit cfg:', err)));
 }
 
 // ══════════════════════════════════════
@@ -182,7 +286,7 @@ function onStateChange() {
 window.APP = {
   navTo, goFilter,
   // auth / theme / settings
-  openLogin, closeLogin, doLogin, doLogout, toggleTheme, setSetting,
+  openLogin, closeLogin, doLogin, doLogout, closeMsg, toggleTheme, setSetting,
   // pumps
   addPump, deletePump, renderPumps, editPump, cancelPumpEdit, savePump,
   pumpSearch, pumpPick, pumpKey, pumpBlur,
@@ -194,6 +298,12 @@ window.APP = {
   addFaultToEdit, delEditFault, editEditFault, checkEditFault,
   addWorkToEdit,  delEditWork,  editEditWork,  checkEditWork, rejectEditWork,
   archiveReport, unarchiveReport, toggleHidden,
+  // users (المالك)
+  saveOwnerName, openUserModal, closeUserModal, setPerm, setAllPerms, saveUser,
+  toggleUserDisabled, sendUserReset, deleteUser, renderUsersPage,
+  // audit (المالك)
+  renderAudit, toggleAuditRow, setAuditEnabled, auditSelectVisible, auditToggleSel,
+  auditDeleteSelected, auditDeleteOlder, auditDeleteAll, auditLoadMore,
   // ui
   updateStats, renderDashboard, renderList, renderArchived,
   // export
@@ -218,6 +328,7 @@ function init() {
   onAuth(user => {
     state.user = user;
     state.authReady = true;
+    watchAccount(user);
     onStateChange();
   });
 }

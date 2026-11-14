@@ -3,8 +3,9 @@
 // المستند: settings/app  (قراءة للجميع، كتابة للأدمن)
 // ═══════════════════════════════════════
 
-import { Doc, Listen, Set } from './firebase.js';
-import { state, isAdmin } from './state.js';
+import { Doc, Listen } from './firebase.js';
+import { Set } from './db.js';
+import { state, isOwner } from './state.js';
 import { toast } from './utils.js';
 
 const DEFAULTS = { publicList: true, publicDashboard: true, publicExport: false };
@@ -28,8 +29,9 @@ export function initSettings(onUpdate) {
 
 // أول دخول للأدمن: ينشئ الإعدادات الافتراضية (القائمة + لوحة التحكم ظاهرتان، التصدير مخفي)
 export function ensureDefaultSettings() {
-  if (!isAdmin() || !state.settingsLoaded || state.settingsExists) return;
+  if (!isOwner() || !state.settingsLoaded || state.settingsExists) return;
   state.settingsExists = true;
+  // لا يُسجَّل في السجل (إنشاء تلقائي)
   Set(Doc('settings', 'app'), { ...DEFAULTS, updatedAt: Date.now() })
     .catch(e => console.warn('settings init:', e));
 }
