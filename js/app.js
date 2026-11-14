@@ -141,8 +141,8 @@ function applyAccess() {
   ALL_PAGES.forEach(p => show('nav-' + p, canView(p)));
 
   show('sec-main',     ['dashboard', 'new', 'list', 'archived'].some(canView));
-  show('sec-settings', ['pumps', 'settings'].some(canView));
-  show('sec-admin',    ['users', 'audit'].some(canView));
+  show('sec-settings', canView('pumps'));
+  show('sec-admin',    ['users', 'audit', 'settings'].some(canView));
   show('sec-reports',  canView('export'));
   show('chips',        canView('dashboard'));
 
