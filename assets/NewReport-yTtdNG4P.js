@@ -1,1 +1,0 @@
-import{ab as e,u as r,o as s,C as a,c as t,R as o}from"./index-DQlDaRIS.js";import"./firebase-D5Mc0kzM.js";function l(){return e.jsxs(e.Fragment,{children:[e.jsx(r,{title:"تسجيل بلاغ جديد",icon:s,sub:"أدخل بيانات البلاغ والمضخة"}),e.jsx(a,{children:e.jsx(t,{className:"pt-5",children:e.jsx(o,{})})})]})}export{l as default};
