@@ -1,0 +1,1 @@
+import{ao as r,y as e,r as s,C as a,d as t,R as o}from"./index-Cmwx872u.js";import"./firebase-D5Mc0kzM.js";function d(){return r.jsxs(r.Fragment,{children:[r.jsx(e,{title:"تسجيل بلاغ جديد",icon:s,sub:"أدخل بيانات البلاغ والمضخة"}),r.jsx(a,{children:r.jsx(t,{className:"pt-5",children:r.jsx(o,{})})})]})}export{d as default};
